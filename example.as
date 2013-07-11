@@ -1,4 +1,6 @@
-MAIN:	mov/0,0		LENGTH,r1
+        ;comment
+
+MAIN:   mov/0,0		LENGTH,r1
 	lea/1/1/1,0	STR{*LENGTH}, r4
 LOOP:	jmp/1/0.0,0	END
 	prn/1/1/0,0	STR{r3}

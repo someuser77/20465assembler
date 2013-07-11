@@ -20,7 +20,9 @@ int main(int argc, char** argv) {
     FILE *sourceFile;
     char *sourceFileName = "example.as";
     SourceLine line;
+    char *bufferPos;
     char *label;
+    int ferrorCode;
     
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
@@ -29,21 +31,41 @@ int main(int argc, char** argv) {
         exit(1);
     }
     
-    if (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) == NULL)
+    while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
-        fprintf(stderr, "Error reading line from file %s.", sourceFileName);
+        bufferPos = buffer;
+        puts(bufferPos);
+        
+        if (isBlankLine(bufferPos))
+        {
+            /* blank line */
+            continue;
+        }
+        
+        bufferPos = skipWhitespace(bufferPos);
+        
+        if (isCommentLine(bufferPos))
+        {
+            /* comment line */
+            continue;
+        }
+        
+        line = initSourceLine(bufferPos, 0, sourceFileName);
+
+
+        label = getLabel(&line);
+        if (label != NULL)
+        {
+            puts(label);
+        }
+    }
+    
+    if ((ferrorCode = ferror(sourceFile)))
+    {
+        fprintf(stderr, "Error reading from file %s %d.", sourceFileName, ferrorCode);
         exit(EXIT_FAILURE);
     }
     
-    puts(buffer);
-    
-    line = initSourceLine(buffer, 0, sourceFileName);
-    
-    label = getLabel(&line);
-    if (label != NULL)
-    {
-        puts(label);
-    }
     fclose(sourceFile);
     
     return (EXIT_SUCCESS);

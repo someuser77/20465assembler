@@ -9,7 +9,8 @@
 #define	CONSTS_H
 
 #define LABEL_TOKEN ':'
+#define COMMENT_TOKEN ';'
 #define LINE_BUFFER_LENGTH 255
-
+#define EOL '\0'
 #endif	/* CONSTS_H */
 

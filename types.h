@@ -15,9 +15,7 @@
 #define SOURCE_OPERAND_LOW_NIBBLE 0
 #define SOURCE_OPERAND_HIGH_NIBBLE 2
 
-typedef int Boolean;
-#define TRUE 1
-#define FALSE 0
+typedef enum {False = 0, True = 1} Boolean;
 
 typedef enum {
     mov = 0, cmp, add, sub, not, clr, lea, inc, 

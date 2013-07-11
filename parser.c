@@ -44,7 +44,7 @@ char *skipWhitespace(char *sourceLine)
 char *getLabel(SourceLine *sourceLine)
 {
     char *label;
-    Boolean valid = TRUE;
+    Boolean valid = True;
     char *line = sourceLine->text;
     char *labelEnd = strchr(line, LABEL_TOKEN);
     int length;
@@ -57,7 +57,7 @@ char *getLabel(SourceLine *sourceLine)
     if (!isalpha(*label))
     {
         logParsingError("Label does not start with a letter:", sourceLine);
-        valid = FALSE;
+        valid = False;
     }
     
     for (; label != labelEnd; label++)
@@ -65,7 +65,7 @@ char *getLabel(SourceLine *sourceLine)
         if (!isalnum(*label))
         {
             logParsingError("Label contains non alphanumeric characters", sourceLine);
-            valid = FALSE;
+            valid = False;
         }
     }
     
@@ -76,4 +76,15 @@ char *getLabel(SourceLine *sourceLine)
     label[length] = '\0';
     
     return label;
+}
+
+Boolean isBlankLine(char *sourceCodeLine)
+{
+    char *str = skipWhitespace(sourceCodeLine);
+    return *str == EOL ? True : False;
+}
+
+Boolean isCommentLine(char *sourceCodeLine)
+{
+    return *sourceCodeLine == COMMENT_TOKEN ? True : False;
 }

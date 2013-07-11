@@ -21,7 +21,8 @@ SourceLine initSourceLine(char *text, int lineNumber, char* fileName);
 void freeSourceLine(SourceLine *line);
 char *skipWhitespace(char *sourceLine);
 char *getLabel(SourceLine *sourceLine);
-
+Boolean isBlankLine(char *sourceCodeLine);
+Boolean isCommentLine(char *sourceCodeLine);
 
 #endif	/* PARSER_H */
 
