@@ -9,6 +9,7 @@ parser.o: parser.c parser.h
 
 symboltable.o: symboltable.c symboltable.h
 	$(COMPILE_MACRO) -c symboltable.c
+
 clean:
-	rm *.o *~ main
- 
+	# the -@ is so the make wont fail it threre were no files to delete
+	-@rm *.o *~ main
