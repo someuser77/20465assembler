@@ -48,6 +48,7 @@ char *getLabel(SourceLine *sourceLine)
     char *line = sourceLine->text;
     char *labelEnd = strchr(line, LABEL_TOKEN);
     int length;
+    char msg[MESSAGE_BUFFER_LENGTH] = {0};
     
     if (labelEnd == NULL) return NULL;
     length = labelEnd - line;
@@ -57,6 +58,13 @@ char *getLabel(SourceLine *sourceLine)
     if (!isalpha(*label))
     {
         logParsingError("Label does not start with a letter:", sourceLine);
+        valid = False;
+    }
+    
+    if (length > MAX_LABEL_LENGTH)
+    {
+        sprintf(msg, "Label must be %d chars or less", MAX_LABEL_LENGTH);
+        logParsingError(msg, sourceLine);
         valid = False;
     }
     
