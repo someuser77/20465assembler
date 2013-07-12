@@ -11,6 +11,9 @@
 #define LABEL_TOKEN ':'
 #define COMMENT_TOKEN ';'
 #define GUIDANCE_TOLEN '.'
+#define REGISTER_PREFIX 'r'
+#define MIN_REGISTER_ID 0
+#define MAX_REGISTER_ID 7
 #define DATA_GUIDANCE_TOKEN ".data"
 #define DATA_GUIDANCE_TOKEN_LENGTH strlen(DATA_GUIDANCE_TOKEN)
 #define STRING_GUIDANCE_TOKEN ".string"

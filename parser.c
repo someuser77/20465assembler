@@ -44,22 +44,39 @@ char *skipWhitespace(char *sourceLine)
 char *getLabel(SourceLine *sourceLine)
 {
     char *label;
-    Boolean valid = True;
     char *line = sourceLine->text;
     char *labelEnd = strchr(line, LABEL_TOKEN);
     int length;
-    char msg[MESSAGE_BUFFER_LENGTH] = {0};
+    Boolean isValidLabel(char *label, SourceLine *sourceLine);
     
     if (labelEnd == NULL) return NULL;
     length = labelEnd - line;
     
-    /* validate label */
     label = line;
+    
+    if (!isValidLabel(label, sourceLine)) return NULL;
+    
+    label = (char *)malloc(sizeof(char) * (length + 1));
+    strncpy(label, sourceLine->text, length);
+    label[length] = '\0';
+    
+    return label;
+}
+
+Boolean isValidLabel(char *label, SourceLine *sourceLine)
+{
+    Boolean valid = True;
+    int length;
+    int i;
+    char msg[MESSAGE_BUFFER_LENGTH] = {0};
+    
     if (!isalpha(*label))
     {
-        logParsingError("Label does not start with a letter:", sourceLine);
+        logParsingError("Label must start with a letter:", sourceLine);
         valid = False;
     }
+    
+    length = strlen(label);
     
     if (length > MAX_LABEL_LENGTH)
     {
@@ -68,22 +85,23 @@ char *getLabel(SourceLine *sourceLine)
         valid = False;
     }
     
-    for (; label != labelEnd; label++)
+    for (i = 0; i < length; i++)
     {
-        if (!isalnum(*label))
+        if (!isalnum(label[i]))
         {
             logParsingError("Label contains non alphanumeric characters", sourceLine);
             valid = False;
         }
     }
-    
-    if (!valid) return NULL;
-    
-    label = (char *)malloc(sizeof(char) * (length + 1));
-    strncpy(label, sourceLine->text, length);
-    label[length] = '\0';
-    
-    return label;
+    if (length == 2)
+    {
+        if (label[0] == REGISTER_PREFIX && ((label[1] - '0') >= MIN_REGISTER_ID && (label[1] - '0') <= MAX_REGISTER_ID))
+        {
+            logParsingError("Label must not be a valid register name", sourceLine);
+            valid = False;
+        }
+    }
+    return valid;
 }
 
 Boolean isBlankLine(char *sourceCodeLine)
