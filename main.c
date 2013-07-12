@@ -52,11 +52,20 @@ int main(int argc, char** argv) {
         
         line = initSourceLine(bufferPos, 0, sourceFileName);
 
-
         label = getLabel(&line);
         if (label != NULL)
         {
-            puts(label);
+            printf("Label: %s", label);
+        }
+        
+        bufferPos = skipWhitespace(bufferPos);
+        
+        if (*bufferPos == GUIDANCE_TOLEN)
+        {
+            if (isImaginaryGuidance(bufferPos))
+            {
+                
+            }
         }
     }
     

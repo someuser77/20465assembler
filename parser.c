@@ -88,3 +88,9 @@ Boolean isCommentLine(char *sourceCodeLine)
 {
     return *sourceCodeLine == COMMENT_TOKEN ? True : False;
 }
+
+Boolean isImaginaryGuidance(char *sourceLine)
+{
+    return (strncmp(sourceLine, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0 || 
+            strncmp(sourceLine, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0) ? True : False;
+}

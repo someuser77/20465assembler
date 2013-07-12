@@ -23,6 +23,7 @@ char *skipWhitespace(char *sourceLine);
 char *getLabel(SourceLine *sourceLine);
 Boolean isBlankLine(char *sourceCodeLine);
 Boolean isCommentLine(char *sourceCodeLine);
+Boolean isImaginaryGuidance(char *sourceLine);
 
 #endif	/* PARSER_H */
 
