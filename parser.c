@@ -5,6 +5,7 @@
 #include "types.h"
 #include "consts.h"
 #include "parser.h"
+#include "opcodemap.h"
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
@@ -93,6 +94,7 @@ Boolean isValidLabel(char *label, SourceLine *sourceLine)
             valid = False;
         }
     }
+
     if (length == 2)
     {
         if (label[0] == REGISTER_PREFIX && ((label[1] - '0') >= MIN_REGISTER_ID && (label[1] - '0') <= MAX_REGISTER_ID))
@@ -100,6 +102,12 @@ Boolean isValidLabel(char *label, SourceLine *sourceLine)
             logParsingError("Label must not be a valid register name", sourceLine);
             valid = False;
         }
+    }
+    
+    if (isValidOpcodeName(label))
+    {
+        logParsingError("Label must not be a valid opcode name", sourceLine);
+        valid = False;
     }
     return valid;
 }
