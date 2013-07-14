@@ -1,5 +1,6 @@
 #include <string.h>
 #include "consts.h"
+#include "types.h"
 
 static const char *OPCODES[] = { 
     "mov", "cmp", "add", "sub", "not", "clr", "lea", "inc", 
