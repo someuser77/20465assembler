@@ -19,7 +19,7 @@ void insertSymbol(ptrSymbolTable table, char *symbol, int value)
     entry->next = NULL;
     entry->value = value;
     
-    strcpy(entry->symbol, symbol);
+    strcpy(entry->symbolName, symbol);
     
     if (table->root == NULL)
     {
@@ -38,7 +38,7 @@ ptrSymbolTableEntry findSymbol(ptrSymbolTable table, char *symbol)
     ptrSymbolTableEntry entry = table->root;
     while (entry != NULL)
     {
-        if (strcmp(entry->symbol, symbol) == 0) return entry;
+        if (strcmp(entry->symbolName, symbol) == 0) return entry;
         entry = entry->next;
     }
     return NULL;

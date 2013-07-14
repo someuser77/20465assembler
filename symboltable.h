@@ -6,13 +6,14 @@
  */
 
 #include "consts.h"
-
+#include "types.h"
 #ifndef SYMBOLTABLE_H
 #define	SYMBOLTABLE_H
 
 typedef struct tSymbolTableEntry{
-    char symbol[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
+    char symbolName[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
     int value;
+    SymbolType symbolType;
     struct tSymbolTableEntry *next;
 } SymbolTableEntry, *ptrSymbolTableEntry;
 

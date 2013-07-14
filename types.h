@@ -22,9 +22,9 @@ typedef enum {
     dec, jmp, bne, red, prn, jsr, rts, stop
 } Opcode;
 
-typedef enum { Large = 0, Small = 1 } InstructionType;
+typedef enum { Large = 0, Small = 1 } InstructionSize;
 typedef enum { Single = 0, Double = 1} InstructionRepetition;
-
+/*
 typedef struct tInstruction {
     unsigned int comb : 2;
     unsigned int dest_register : 2;
@@ -36,10 +36,11 @@ typedef struct tInstruction {
     InstructionRepetition dbl : 1;
     unsigned int reserved : 2;
 } Instruction;
-
+*/
 /* statement type declaration */
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
 
+typedef enum {Data, String, Entry, Extern} SymbolType;
 
 #endif	/* TYPES_H */
 
