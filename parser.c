@@ -7,6 +7,8 @@
 #include "parser.h"
 #include "opcodemap.h"
 
+#define REGISTER_NAME_LENGTH 2
+
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
     SourceLine line;
@@ -36,10 +38,15 @@ void logParsingError(char *errorText, SourceLine *line)
     fprintf(stderr, "Error parsing file '%s' line %d: %s\n", line->fileName, line->lineNumber, errorText);
 }
 
-char *skipWhitespace(char *sourceLine)
+void skipWhitespace(SourceLine *sourceLine)
 {
-    while (isspace(*sourceLine)) sourceLine++;
-    return sourceLine;
+    while (*sourceLine->text != EOL && isspace(*sourceLine->text)) sourceLine->text++;
+}
+
+char *skipWhitespaceInString(char *str)
+{
+    while (*str != EOL && isspace(*str)) str++;
+    return str;
 }
 
 char *getLabel(SourceLine *sourceLine)
@@ -48,27 +55,27 @@ char *getLabel(SourceLine *sourceLine)
     char *line = sourceLine->text;
     char *labelEnd = strchr(line, LABEL_TOKEN);
     int length;
-    Boolean isValidLabel(char *label, SourceLine *sourceLine);
+    Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);
     
     if (labelEnd == NULL) return NULL;
-    length = labelEnd - line;
     
     label = line;
     
-    if (!isValidLabel(label, sourceLine)) return NULL;
-    
+    if (!isValidLabel(sourceLine, label, labelEnd)) return NULL;
+    length = labelEnd - line;
     label = (char *)malloc(sizeof(char) * (length + 1));
     strncpy(label, sourceLine->text, length);
-    label[length] = '\0';
+    label[length] = EOL;
     
     return label;
 }
 
-Boolean isValidLabel(char *label, SourceLine *sourceLine)
+Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
 {
     Boolean valid = True;
     int length;
     int i;
+    char *label = sourceLine->text;
     char msg[MESSAGE_BUFFER_LENGTH] = {0};
     
     if (!isalpha(*label))
@@ -77,7 +84,7 @@ Boolean isValidLabel(char *label, SourceLine *sourceLine)
         valid = False;
     }
     
-    length = strlen(label);
+    length = labelEnd - labelStart;
     
     if (length > MAX_LABEL_LENGTH)
     {
@@ -92,10 +99,11 @@ Boolean isValidLabel(char *label, SourceLine *sourceLine)
         {
             logParsingError("Label contains non alphanumeric characters", sourceLine);
             valid = False;
+            break;
         }
     }
 
-    if (length == 2)
+    if (length == REGISTER_NAME_LENGTH)
     {
         if (label[0] == REGISTER_PREFIX && ((label[1] - '0') >= MIN_REGISTER_ID && (label[1] - '0') <= MAX_REGISTER_ID))
         {
@@ -112,19 +120,37 @@ Boolean isValidLabel(char *label, SourceLine *sourceLine)
     return valid;
 }
 
-Boolean isBlankLine(char *sourceCodeLine)
+Boolean isBlankLine(SourceLine *sourceLine)
 {
-    char *str = skipWhitespace(sourceCodeLine);
-    return *str == EOL ? True : False;
+    char *ptr = skipWhitespaceInString(sourceLine->text);
+    return *ptr == EOL ? True : False;
 }
 
-Boolean isCommentLine(char *sourceCodeLine)
+Boolean isCommentLine(SourceLine *sourceLine)
 {
-    return *sourceCodeLine == COMMENT_TOKEN ? True : False;
+    char *ptr = skipWhitespaceInString(sourceLine->text);
+    return *ptr == COMMENT_TOKEN ? True : False;
 }
 
-Boolean isImaginaryGuidance(char *sourceLine)
+Boolean isImaginaryGuidance(SourceLine *sourceLine)
 {
-    return (strncmp(sourceLine, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0 || 
-            strncmp(sourceLine, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0) ? True : False;
+    return (strncmp(sourceLine->text, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0 || 
+            strncmp(sourceLine->text, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0) ? True : False;
+}
+
+Boolean tryGetGuidanceType(SourceLine *sourceLine, SymbolType *symbolType)
+{
+    if (strncmp(sourceLine->text, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0)
+    {
+        *symbolType = Data;
+        return True;
+    }
+    
+    if (strncmp(sourceLine->text, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0)
+    {
+        *symbolType = String;
+        return True;
+    }
+    
+    return False;
 }

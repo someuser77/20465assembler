@@ -11,7 +11,7 @@ SymbolTable initSymbolTable()
     return table;
 }
 
-void insertSymbol(ptrSymbolTable table, char *symbol, int value)
+void insertSymbol(ptrSymbolTable table, char *symbol, SymbolType symbolType, int value)
 {
     ptrSymbolTableEntry entry;
     

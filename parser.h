@@ -8,6 +8,8 @@
 #ifndef PARSER_H
 #define	PARSER_H
 
+#include "types.h"
+
 typedef struct tSourceLine
 {
     char *text;
@@ -19,11 +21,11 @@ typedef struct tSourceLine
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName);
 void freeSourceLine(SourceLine *line);
-char *skipWhitespace(char *sourceLine);
+void skipWhitespace(SourceLine *sourceLine);
 char *getLabel(SourceLine *sourceLine);
-Boolean isBlankLine(char *sourceCodeLine);
-Boolean isCommentLine(char *sourceCodeLine);
-Boolean isImaginaryGuidance(char *sourceLine);
-
+Boolean isBlankLine(SourceLine *sourceLine);
+Boolean isCommentLine(SourceLine *sourceLine);
+Boolean isImaginaryGuidance(SourceLine *sourceLine);
+Boolean tryGetGuidanceType(SourceLine *sourceLine, SymbolType *symbolType);
 #endif	/* PARSER_H */
 

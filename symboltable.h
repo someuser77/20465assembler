@@ -24,7 +24,7 @@ typedef struct {
 } SymbolTable, *ptrSymbolTable;
 
 SymbolTable initSymbolTable();
-void insertSymbol(ptrSymbolTable table, char *symbol, int value);
+void insertSymbol(ptrSymbolTable table, char *symbol, SymbolType symbolType, int value);
 ptrSymbolTableEntry findSymbol(ptrSymbolTable table, char *symbol);
 void freeSymbolTable(ptrSymbolTable table);
 #endif	/* SYMBOLTABLE_H */

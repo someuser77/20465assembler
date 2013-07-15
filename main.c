@@ -7,9 +7,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "types.h"
 #include "parser.h"
 #include "consts.h"
+#include "symboltable.h"
 
 
 /*
@@ -20,9 +22,16 @@ int main(int argc, char** argv) {
     FILE *sourceFile;
     char *sourceFileName = "example.as";
     SourceLine line;
+    ptrSourceLine linePtr = &line;
     char *bufferPos;
     char *label;
+    
     int ferrorCode;
+    Boolean foundSymbol;
+    SymbolType symbolType;
+    SymbolTable symbolTable;
+    
+    int dataCounter, instructionCounter;
     
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
@@ -31,39 +40,52 @@ int main(int argc, char** argv) {
         exit(1);
     }
     
+    dataCounter = 0;
+    instructionCounter = 0;
+    symbolTable = initSymbolTable();
+    
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
         bufferPos = buffer;
         puts(bufferPos);
         
-        if (isBlankLine(bufferPos))
+        
+        line = initSourceLine(bufferPos, 0, sourceFileName);
+        
+        if (isBlankLine(linePtr))
         {
             /* blank line */
             continue;
         }
         
-        bufferPos = skipWhitespace(bufferPos);
+        skipWhitespace(linePtr);
         
-        if (isCommentLine(bufferPos))
+        if (isCommentLine(linePtr))
         {
             /* comment line */
             continue;
         }
-        
-        line = initSourceLine(bufferPos, 0, sourceFileName);
 
-        label = getLabel(&line);
+        label = getLabel(linePtr);
         if (label != NULL)
         {
-            printf("Label: %s", label);
+            printf("Label: %s\n", label);
+            linePtr->text += strlen(label);
+            linePtr->text += 1; /* skip the ':' */
+            foundSymbol = True;
+        } 
+        else
+        {
+            foundSymbol = False;    
         }
         
-        bufferPos = skipWhitespace(bufferPos);
+        skipWhitespace(linePtr);
         
-        if (*bufferPos == GUIDANCE_TOLEN)
-        {
-            if (isImaginaryGuidance(bufferPos))
+        if (*linePtr->text == GUIDANCE_TOLEN)
+        {            
+            if (tryGetGuidanceType(linePtr, &symbolType))
             {
+                insertSymbol(&symbolTable, label, symbolType, dataCounter);
                 
             }
         }
