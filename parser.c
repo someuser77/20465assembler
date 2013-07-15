@@ -38,6 +38,82 @@ void logParsingError(char *errorText, SourceLine *line)
     fprintf(stderr, "Error parsing file '%s' line %d: %s\n", line->fileName, line->lineNumber, errorText);
 }
 
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
+{
+    char buffer[LINE_BUFFER_LENGTH + 1] = {0};
+    int dataCounter = 0;
+    int instructionCounter = 0;
+    SourceLine line;
+    SourceLinePtr linePtr = &line;
+    char *bufferPos;
+    char *label;
+    Boolean foundSymbol;
+    SymbolType symbolType;
+    
+    while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
+    {
+        bufferPos = buffer;
+        puts(bufferPos);
+        
+        
+        line = initSourceLine(bufferPos, 0, sourceFileName);
+        
+        if (isBlankLine(linePtr))
+        {
+            /* blank line */
+            continue;
+        }
+        
+        skipWhitespace(linePtr);
+        
+        if (isCommentLine(linePtr))
+        {
+            /* comment line */
+            continue;
+        }
+
+        label = getLabel(linePtr);
+        if (label != NULL)
+        {
+            printf("Label: %s\n", label);
+            linePtr->text += strlen(label);
+            linePtr->text += 1; /* skip the ':' */
+            foundSymbol = True;
+        } 
+        else
+        {
+            foundSymbol = False;    
+        }
+        
+        skipWhitespace(linePtr);
+        
+        if (*linePtr->text == GUIDANCE_TOLEN)
+        {            
+            if (tryGetGuidanceType(linePtr, &symbolType))
+            {
+                switch (symbolType)
+                {
+                    case Data:  
+                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                        break;
+                    case String:
+                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                        break;
+                    case Entry:
+                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                        break;
+                    case Extern:
+                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                        break;
+                }                
+            }
+        }
+    }
+    
+    return True;
+}
+
+
 void skipWhitespace(SourceLine *sourceLine)
 {
     while (*sourceLine->text != EOL && isspace(*sourceLine->text)) sourceLine->text++;

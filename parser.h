@@ -9,6 +9,7 @@
 #define	PARSER_H
 
 #include "types.h"
+#include "symboltable.h"
 
 typedef struct tSourceLine
 {
@@ -16,7 +17,7 @@ typedef struct tSourceLine
     char *start;
     int lineNumber;
     char *fileName;
-} SourceLine, *ptrSourceLine;
+} SourceLine, *SourceLinePtr;
 
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName);
@@ -27,5 +28,6 @@ Boolean isBlankLine(SourceLine *sourceLine);
 Boolean isCommentLine(SourceLine *sourceLine);
 Boolean isImaginaryGuidance(SourceLine *sourceLine);
 Boolean tryGetGuidanceType(SourceLine *sourceLine, SymbolType *symbolType);
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName);
 #endif	/* PARSER_H */
 

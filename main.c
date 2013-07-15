@@ -18,20 +18,14 @@
  * 
  */
 int main(int argc, char** argv) {
-    char buffer[LINE_BUFFER_LENGTH + 1] = {0};
+    
     FILE *sourceFile;
     char *sourceFileName = "example.as";
-    SourceLine line;
-    ptrSourceLine linePtr = &line;
-    char *bufferPos;
-    char *label;
     
     int ferrorCode;
-    Boolean foundSymbol;
-    SymbolType symbolType;
-    SymbolTable symbolTable;
     
-    int dataCounter, instructionCounter;
+    
+    SymbolTable symbolTable;
     
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
@@ -40,56 +34,10 @@ int main(int argc, char** argv) {
         exit(1);
     }
     
-    dataCounter = 0;
-    instructionCounter = 0;
+    
     symbolTable = initSymbolTable();
     
-    while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
-    {
-        bufferPos = buffer;
-        puts(bufferPos);
-        
-        
-        line = initSourceLine(bufferPos, 0, sourceFileName);
-        
-        if (isBlankLine(linePtr))
-        {
-            /* blank line */
-            continue;
-        }
-        
-        skipWhitespace(linePtr);
-        
-        if (isCommentLine(linePtr))
-        {
-            /* comment line */
-            continue;
-        }
-
-        label = getLabel(linePtr);
-        if (label != NULL)
-        {
-            printf("Label: %s\n", label);
-            linePtr->text += strlen(label);
-            linePtr->text += 1; /* skip the ':' */
-            foundSymbol = True;
-        } 
-        else
-        {
-            foundSymbol = False;    
-        }
-        
-        skipWhitespace(linePtr);
-        
-        if (*linePtr->text == GUIDANCE_TOLEN)
-        {            
-            if (tryGetGuidanceType(linePtr, &symbolType))
-            {
-                insertSymbol(&symbolTable, label, symbolType, dataCounter);
-                
-            }
-        }
-    }
+    firstPass(sourceFile, &symbolTable, sourceFileName);
     
     if ((ferrorCode = ferror(sourceFile)))
     {
