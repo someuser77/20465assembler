@@ -27,7 +27,7 @@ char *getLabel(SourceLine *sourceLine);
 Boolean isBlankLine(SourceLine *sourceLine);
 Boolean isCommentLine(SourceLine *sourceLine);
 Boolean isImaginaryGuidance(SourceLine *sourceLine);
-Boolean tryGetGuidanceType(SourceLine *sourceLine, SymbolType *symbolType);
+Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType);
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName);
 #endif	/* PARSER_H */
 

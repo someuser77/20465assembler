@@ -48,7 +48,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     char *bufferPos;
     char *label;
     Boolean foundSymbol;
-    SymbolType symbolType;
+    GuidanceType guidanceType;
     
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
@@ -89,21 +89,22 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         
         if (*linePtr->text == GUIDANCE_TOLEN)
         {            
-            if (tryGetGuidanceType(linePtr, &symbolType))
+            if (tryGetGuidanceType(linePtr, &guidanceType))
             {
-                switch (symbolType)
+                switch (guidanceType)
                 {
-                    case Data:  
-                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                    case GuidanceType_Data:  
+                        insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         break;
-                    case String:
-                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                    case GuidanceType_String:
+                        insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         break;
-                    case Entry:
-                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                    case GuidanceType_Entry:
+                        insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
                         break;
-                    case Extern:
-                        insertSymbol(symbolTable, label, symbolType, dataCounter);
+                    case GuidanceType_Extern:
+                        insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
+                        continue;
                         break;
                 }                
             }
@@ -214,17 +215,17 @@ Boolean isImaginaryGuidance(SourceLine *sourceLine)
             strncmp(sourceLine->text, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0) ? True : False;
 }
 
-Boolean tryGetGuidanceType(SourceLine *sourceLine, SymbolType *symbolType)
+Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
 {
     if (strncmp(sourceLine->text, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0)
     {
-        *symbolType = Data;
+        *guidanceType = GuidanceType_Data;
         return True;
     }
     
     if (strncmp(sourceLine->text, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0)
     {
-        *symbolType = String;
+        *guidanceType = GuidanceType_String;
         return True;
     }
     

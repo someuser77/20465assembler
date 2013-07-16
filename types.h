@@ -40,7 +40,7 @@ typedef struct tInstruction {
 /* statement type declaration */
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
 
-typedef enum {Data, String, Entry, Extern} SymbolType;
+typedef enum {GuidanceType_Data, GuidanceType_String, GuidanceType_Entry, GuidanceType_Extern} GuidanceType;
 
 #endif	/* TYPES_H */
 

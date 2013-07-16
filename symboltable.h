@@ -10,6 +10,10 @@
 #ifndef SYMBOLTABLE_H
 #define	SYMBOLTABLE_H
 
+#define EMPTY_SYMBOL_VALUE -1
+
+typedef enum {SymbolType_Code, SymbolType_Data} SymbolType;
+
 typedef struct tSymbolTableEntry{
     char symbolName[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
     int value;
