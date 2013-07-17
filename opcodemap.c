@@ -1,8 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "consts.h"
 #include "types.h"
-#include "parser.h"
 
 #define OPCODE_NAME_LENGTH 4
 #define NUMBER_OF_OPCODES 16
@@ -135,13 +135,42 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
         return NULL;
     }
     
-    result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
+    /* skip the OPCODE_CONTROL_PARAMETER_SEPERATOR */
+    sourceLine->text++;
     
+    result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
+    memset(result, 0, sizeof(InstructionRepetition));
+    
+    /*    
+    move source line to types.h and remove the reference to parser.h
+    create a method for wiriting to the error fiels that uses vsprintf
+    */
     (*OPCODE_TO_HANDLER[opcode])(result, sourceLine);
     
     return result;
 }
-    
+
+Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+{
+    char msg[MESSAGE_BUFFER_LENGTH] = {0};
+    int type = (*sourceLine->text) - '0';
+    int length;
+    switch (type)
+    {
+        case InstructionOperandSize_Small:
+            instruction->type = InstructionOperandSize_Small;
+            break;
+        case InstructionOperandSize_Large:
+            instruction->type = InstructionOperandSize_Large;
+            break;
+        default:
+            sprintf(msg, "Unknown operand size type %d", type);
+            length = strlen(msg);
+            sourceLine->error = (char *)malloc(sizeof(char) * length);
+            strncpy(sourceLine->error, msg, length);
+    }
+}
+
 void fillMovOpcode(InstructionRepresentationPtr instructionRepresentation, SourceLinePtr sourceLine)
 {
     

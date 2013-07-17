@@ -22,7 +22,7 @@ typedef enum {
     Opcode_dec, Opcode_jmp, Opcode_bne, Opcode_red, Opcode_prn, Opcode_jsr, Opcode_rts, Opcode_stop
 } Opcode;
 
-typedef enum { Large = 0, Small = 1 } InstructionSize;
+typedef enum { InstructionOperandSize_Large = 0, InstructionOperandSize_Small = 1 } InstructionOperandSize;
 typedef enum { Single = 0, Double = 1} InstructionRepetition;
 
 typedef struct tInstructionRepresentation {
@@ -41,6 +41,21 @@ typedef struct tInstructionRepresentation {
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
 
 typedef enum {GuidanceType_Data, GuidanceType_String, GuidanceType_Entry, GuidanceType_Extern} GuidanceType;
+
+typedef struct tSourceLine
+{
+    /* a pointer to the position inside the text line */
+    char *text;
+    /* a pointer to the beginning of the line*/
+    char *start;
+    /* the number of the line in the source file */
+    int lineNumber;
+    /* the name of the file this line belogs to */
+    char *fileName;
+    /* an error associated with this line*/
+    char *error;
+} SourceLine, *SourceLinePtr;
+
 
 #endif	/* TYPES_H */
 

@@ -12,20 +12,6 @@
 #include "types.h"
 #include "symboltable.h"
 
-typedef struct tSourceLine
-{
-    /* a pointer to the position inside the text line */
-    char *text;
-    /* a pointer to the beginning of the line*/
-    char *start;
-    /* the number of the line in the source file */
-    int lineNumber;
-    /* the name of the file this line belogs to */
-    char *fileName;
-    /* an error associated with this line*/
-    char *error;
-} SourceLine, *SourceLinePtr;
-
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName);
 void freeSourceLine(SourceLine *line);
