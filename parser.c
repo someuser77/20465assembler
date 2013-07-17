@@ -25,6 +25,8 @@ SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
     
     line.lineNumber = lineNumber;
     
+    line.error = NULL;
+    
     return line;
 }
 
@@ -32,11 +34,16 @@ void freeSourceLine(SourceLine *line)
 {
     free(line->text);
     free(line->fileName);
+    free(line->error);
 }
 
 void logParsingError(char *errorText, SourceLine *line)
 {
     fprintf(stderr, "Error parsing file '%s' line %d: %s\n", line->fileName, line->lineNumber, errorText);
+    if (line->error != NULL)
+    {
+        fprintf(stderr, "%s\n", line->error);
+    }
 }
 
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
@@ -51,6 +58,8 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     Boolean foundSymbol;
     GuidanceType guidanceType;
     Opcode opcode;
+    InstructionRepresentationPtr instructionRepresentation;
+    char *errorMessage = "No Error";
     
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
@@ -122,7 +131,20 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
         }
         
-        tryGetOpcode(linePtr, &opcode);
+        if (!tryGetOpcode(linePtr, &opcode))
+        {
+            logParsingError("Unrecognized opcode.", linePtr);
+            return False;
+        }
+        
+        instructionRepresentation = getInstructionRepresentation(linePtr, opcode);
+        
+        if (instructionRepresentation == NULL)
+        {
+            logParsingError(errorMessage, linePtr);
+            return False;
+        }
+        
     }
     
     return True;

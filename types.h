@@ -35,7 +35,7 @@ typedef struct tInstructionRepresentation {
     unsigned int type : 1;
     unsigned int dbl : 1;
     unsigned int reserved : 2;
-} InstructionRepresentation;
+} InstructionRepresentation, *InstructionRepresentationPtr;
 
 /* statement type declaration */
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
