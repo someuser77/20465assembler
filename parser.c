@@ -9,6 +9,7 @@
 
 #define REGISTER_NAME_LENGTH 2
 
+
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
     SourceLine line;
@@ -49,6 +50,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     char *label;
     Boolean foundSymbol;
     GuidanceType guidanceType;
+    Opcode opcode;
     
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
@@ -95,12 +97,17 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                 {
                     case GuidanceType_Data:  
                         insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                        /* insert into memory */
+                        continue;
                         break;
                     case GuidanceType_String:
                         insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                        /* insert into memory */
+                        continue;
                         break;
                     case GuidanceType_Entry:
                         insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+                        continue;
                         break;
                     case GuidanceType_Extern:
                         insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
@@ -109,11 +116,17 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                 }                
             }
         }
+        
+        if (foundSymbol)
+        {
+            insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+        }
+        
+        tryGetOpcode(linePtr, &opcode);
     }
     
     return True;
 }
-
 
 void skipWhitespace(SourceLine *sourceLine)
 {

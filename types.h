@@ -18,25 +18,25 @@
 typedef enum {False = 0, True = 1} Boolean;
 
 typedef enum {
-    mov = 0, cmp, add, sub, not, clr, lea, inc, 
-    dec, jmp, bne, red, prn, jsr, rts, stop
+    Opcode_mov = 0, Opcode_cmp, Opcode_add, Opcode_sub, Opcode_not, Opcode_clr, Opcode_lea, Opcode_inc, 
+    Opcode_dec, Opcode_jmp, Opcode_bne, Opcode_red, Opcode_prn, Opcode_jsr, Opcode_rts, Opcode_stop
 } Opcode;
 
 typedef enum { Large = 0, Small = 1 } InstructionSize;
 typedef enum { Single = 0, Double = 1} InstructionRepetition;
-/*
-typedef struct tInstruction {
+
+typedef struct tInstructionRepresentation {
     unsigned int comb : 2;
     unsigned int dest_register : 2;
     unsigned int dest_addressing : 2;
     unsigned int source_register : 2;
     unsigned int source_addressing : 2;
-    Opcode opcode : 4;
-    InstructionType type : 1;
-    InstructionRepetition dbl : 1;
+    unsigned int opcode : 4;
+    unsigned int type : 1;
+    unsigned int dbl : 1;
     unsigned int reserved : 2;
-} Instruction;
-*/
+} InstructionRepresentation;
+
 /* statement type declaration */
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
 

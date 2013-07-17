@@ -10,6 +10,6 @@
 #define	INSTRUCTIONMAP_H
 
 Boolean isValidOpcodeName(char *instruction);
-
+Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode);
 #endif	/* INSTRUCTIONMAP_H */
 
