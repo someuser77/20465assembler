@@ -145,7 +145,6 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             logParsingError("Unable to parse instruction.", linePtr);
             return False;
         }
-        
     }
     
     return True;

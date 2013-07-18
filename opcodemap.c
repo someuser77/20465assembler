@@ -105,6 +105,7 @@ Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode)
 InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode)
 {
     Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
+    Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
     char *errorMessage;
     const char *opcodeName;
     int opcodeLength = strlen(OPCODE_TO_NAME[opcode]);
@@ -123,17 +124,7 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
     
     if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPERATOR)
     {        
-        errorMessage = "Missing %c token for opcode %s.";
-        sourceLine->error = (char *)malloc(sizeof(strlen(errorMessage) + 1 + opcodeLength));
-        
-        if (sourceLine->error == NULL)
-        {
-            fprintf(stderr, "malloc error.\n");
-            exit(EXIT_FAILURE);
-        }
-        
-        sprintf(sourceLine->error, errorMessage, OPCODE_CONTROL_PARAMETER_SEPERATOR, opcodeName);
-        
+        setSourceLineError(sourceLine, "Missing %c token for opcode %s.", OPCODE_CONTROL_PARAMETER_SEPERATOR, opcodeName);
         return NULL;
     }
     
@@ -150,7 +141,40 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
     
     (*OPCODE_TO_HANDLER[opcode])(result, sourceLine);
     
+    if (*sourceLine->text != ',')
+    {        
+        setSourceLineError(sourceLine, "Missing ',' token for opcode %s.", OPCODE_CONTROL_PARAMETER_SEPERATOR, opcodeName);
+        return NULL;
+    }
+    
+    /* skip the ',' */
+    sourceLine->text++;
+    
+    if (!getInstructionRepetition(sourceLine, result))
+    {
+        return NULL;
+    }
+    
     return result;
+}
+
+Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+{
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    int dbl = (*sourceLine->text) - '0';
+    switch (dbl)
+    {
+        case InstructionRepetition_Single:
+            instruction->dbl = InstructionRepetition_Single;
+            break;
+        case InstructionRepetition_Double:
+            instruction->dbl = InstructionRepetition_Double;
+            break;
+        default:
+            setSourceLineError(sourceLine, "Unknown instruction repetition type %d", dbl);
+            return False;
+    }
+    return True;
 }
 
 Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
