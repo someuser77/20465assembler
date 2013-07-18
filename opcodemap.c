@@ -4,15 +4,21 @@
 #include <stdarg.h>
 #include "consts.h"
 #include "types.h"
+#include "opcodemap.h"
+#include "parser.h"
 
-#define OPCODE_NAME_LENGTH 4
-#define NUMBER_OF_OPCODES 16
-#define OPCODE_CONTROL_PARAMETER_SEPERATOR '/'
+typedef enum { 
+            ValidOperandAddressing_None = 0, 
+            ValidOperandAddressing_Instant = 1, 
+            ValidOperandAddressing_Direct = 2, 
+            ValidOperandAddressing_VaringIndexing = 4, 
+            ValidOperandAddressing_DirectRegister = 8,
+            ValidOperandAddressing_All = ValidOperandAddressing_Instant | ValidOperandAddressing_Direct | ValidOperandAddressing_VaringIndexing | ValidOperandAddressing_DirectRegister
+} ValidOperandAddressing;
 
-typedef void (*OpcodHandler)(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
 
 static const char *OPCODE_TO_NAME[NUMBER_OF_OPCODES] = { NULL };
-static OpcodHandler OPCODE_TO_HANDLER[NUMBER_OF_OPCODES] = { NULL };
+static OpcodeHandler OPCODE_TO_HANDLER[NUMBER_OF_OPCODES] = { NULL };
 /*
     "mov", "cmp", "add", "sub", "not", "clr", "lea", "inc", 
     "dec", "jmp", "bne", "red", "prn", "jsr", "rts", "stop" };
@@ -102,87 +108,31 @@ Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode)
     return False;
 }
 
-InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode)
+char* getOpcodeName(Opcode opcode)
 {
-    Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
-    Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
-    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
-    const char *opcodeName;
-    int opcodeLength = strlen(OPCODE_TO_NAME[opcode]);
-    InstructionRepresentationPtr result;
+    int length;
+    char *name;
     
-    opcodeName = OPCODE_TO_NAME[opcode];
+    /* at this stage the opcode was already checked for existence */
     
     initNameMap();
+    length = strlen(OPCODE_TO_NAME[opcode]) + 1;
+    name = (char *)malloc(sizeof(char) * (length));
+    strncpy(name, OPCODE_TO_NAME[opcode], length);
+    return name;
+}
+
+OpcodeHandler getOpcodeHandler(Opcode opcode)
+{
     initHandlerMap();
-    
-    /* if the text still points to the opcode skip it */
-    if (strncmp(sourceLine->text, opcodeName, opcodeLength) == 0)
-    {
-        sourceLine->text += opcodeLength;
-    }
-    
-    if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPERATOR)
-    {        
-        setSourceLineError(sourceLine, "Missing %c token for opcode %s.", OPCODE_CONTROL_PARAMETER_SEPERATOR, opcodeName);
-        return NULL;
-    }
-    
-    /* skip the OPCODE_CONTROL_PARAMETER_SEPERATOR */
-    sourceLine->text++;
-    
-    result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
-    memset(result, 0, sizeof(InstructionRepetition));
-    
-    if (!getInstructionOperandSize(sourceLine, result))
-    {
-        return NULL;
-    }
-    
-    /* skip operand size mark */
-    sourceLine->text++;
-    
-    (*OPCODE_TO_HANDLER[opcode])(sourceLine, result);
-    
-    if (*sourceLine->text != ',')
-    {        
-        setSourceLineError(sourceLine, "Missing ',' token for opcode %s.", OPCODE_CONTROL_PARAMETER_SEPERATOR, opcodeName);
-        return NULL;
-    }
-    
-    /* skip the ',' */
-    sourceLine->text++;
-    
-    if (!getInstructionRepetition(sourceLine, result))
-    {
-        return NULL;
-    }
-    
-    return result;
+    return OPCODE_TO_HANDLER[opcode];
 }
 
-Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+Boolean readInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
 {
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
-    int dbl = (*sourceLine->text) - '0';
-    switch (dbl)
-    {
-        case InstructionRepetition_Single:
-            instruction->dbl = InstructionRepetition_Single;
-            break;
-        case InstructionRepetition_Double:
-            instruction->dbl = InstructionRepetition_Double;
-            break;
-        default:
-            setSourceLineError(sourceLine, "Unknown instruction repetition type %d", dbl);
-            return False;
-    }
-    return True;
-}
-
-Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
-{
-    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    /* assumed to be a single character, otherwise more 
+     * clever string manipulation is required */
     int type = (*sourceLine->text) - '0';
     switch (type)
     {
@@ -196,6 +146,32 @@ Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresent
             setSourceLineError(sourceLine, "Unknown operand size type %d", type);
             return False;
     }
+    
+    /* skip 'type' value */
+    sourceLine->text++;
+    
+    return True;
+}
+
+Boolean readInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+{
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    /* assumed to be a single character, otherwise more 
+     * clever string manipulation is required */
+    int dbl = (*sourceLine->text) - '0';
+    switch (dbl)
+    {
+        case InstructionRepetition_Single:
+            instruction->dbl = InstructionRepetition_Single;
+            break;
+        case InstructionRepetition_Double:
+            instruction->dbl = InstructionRepetition_Double;
+            break;
+        default:
+            setSourceLineError(sourceLine, "Unknown instruction repetition type %d", dbl);
+            return False;
+    }
+    sourceLine->text++;
     return True;
 }
 
@@ -222,6 +198,11 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
     Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
     instructionRepresentation->opcode = Opcode_mov;
     
+    if (!readInstructionOperandSize(sourceLine, instructionRepresentation))
+    {
+        return;
+    }
+    
     /* if the operand size is small (10 bits instead of 20) we need to set 
      the comb bits to tell how to address each operand */
     
@@ -229,6 +210,36 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
     {
         return;
     }
+    
+    if (*sourceLine->text != OPCODE_TYPE_AND_DBL_SEPERATOR)
+    {
+        setSourceLineError(sourceLine, "Missing '%c' character between operand type and dbl.", OPCODE_TYPE_AND_DBL_SEPERATOR);
+        return;
+    }
+    
+    if (!readInstructionRepetition(sourceLine, instructionRepresentation))
+    {
+        return;
+    }
+    
+    skipWhitespace(sourceLine);
+    
+    if (*sourceLine->text == EOL)
+    {
+        setSourceLineError(sourceLine, "Missing operands.");
+        return;
+    }
+        
+}
+
+Boolean readSourceOperand()
+{
+    return True;
+}
+
+Boolean readDestinationOperand()
+{
+    return True;
 }
 
 Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation)
@@ -300,3 +311,6 @@ Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructi
     
     return True;
 }
+
+
+

@@ -9,8 +9,23 @@
 #ifndef INSTRUCTIONMAP_H
 #define	INSTRUCTIONMAP_H
 
+
+#define OPCODE_NAME_LENGTH 4
+#define NUMBER_OF_OPCODES 16
+
+
+typedef void (*OpcodeHandler)(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
+
 Boolean isValidOpcodeName(char *instruction);
 Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode);
 InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode);
+
+/* returns a string with the opcode name. 
+   must be freed after use. */
+char* getOpcodeName(Opcode opcode);
+
+/* returns a function pointer to the method that handles this opcode */
+OpcodeHandler getOpcodeHandler(Opcode opcode);
+
 #endif	/* INSTRUCTIONMAP_H */
 

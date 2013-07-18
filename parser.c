@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include "types.h"
 #include "consts.h"
 #include "parser.h"
@@ -59,7 +60,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     GuidanceType guidanceType;
     Opcode opcode;
     InstructionRepresentationPtr instructionRepresentation;
-    char *errorMessage = "No Error";
+    
     int lineNumber = 0;
     
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
@@ -265,4 +266,47 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
     }
     
     return False;
+}
+
+
+InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode)
+{
+    Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
+    Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    char *opcodeNamePtr;
+    char opcodeName[OPCODE_NAME_LENGTH + 1] = {0};
+    int opcodeLength;
+    InstructionRepresentationPtr result;
+    OpcodeHandler handler;
+    
+    opcodeNamePtr = getOpcodeName(opcode);
+    strcpy(opcodeName, opcodeNamePtr);
+    free(opcodeNamePtr);
+    opcodeLength = strlen(opcodeName);
+    
+    /* if the text still points to the opcode skip it */
+    if (strncmp(sourceLine->text, opcodeName, opcodeLength) == 0)
+    {
+        sourceLine->text += opcodeLength;
+    }
+    
+    result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
+    memset(result, 0, sizeof(InstructionRepetition));
+    
+    
+    /* the parameters of the command (type, operand size, dbl) are assumed to be 
+       consecutive without spaces between them as seen on the course forum */
+    
+    handler = getOpcodeHandler(opcode);
+    
+    if (handler == NULL)
+    {
+        setSourceLineError(sourceLine, "No handler found for opcode %s", opcodeName);
+        return NULL;
+    }
+    
+    (*handler)(sourceLine, result);
+
+    return result;
 }
