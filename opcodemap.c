@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "consts.h"
 #include "types.h"
 
@@ -103,6 +104,7 @@ Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode)
 
 InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode)
 {
+    Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
     char *errorMessage;
     const char *opcodeName;
     int opcodeLength = strlen(OPCODE_TO_NAME[opcode]);
@@ -141,10 +143,11 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
     result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
     memset(result, 0, sizeof(InstructionRepetition));
     
-    /*    
-    move source line to types.h and remove the reference to parser.h
-    create a method for wiriting to the error fiels that uses vsprintf
-    */
+    if (!getInstructionOperandSize(sourceLine, result))
+    {
+        return NULL;
+    }
+    
     (*OPCODE_TO_HANDLER[opcode])(result, sourceLine);
     
     return result;
@@ -152,9 +155,8 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
 
 Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
 {
-    char msg[MESSAGE_BUFFER_LENGTH] = {0};
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     int type = (*sourceLine->text) - '0';
-    int length;
     switch (type)
     {
         case InstructionOperandSize_Small:
@@ -164,11 +166,28 @@ Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresent
             instruction->type = InstructionOperandSize_Large;
             break;
         default:
-            sprintf(msg, "Unknown operand size type %d", type);
-            length = strlen(msg);
-            sourceLine->error = (char *)malloc(sizeof(char) * length);
-            strncpy(sourceLine->error, msg, length);
+            setSourceLineError(sourceLine, "Unknown operand size type %d", type);
+            return False;
     }
+    return True;
+}
+
+void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
+{
+    char buffer[MESSAGE_BUFFER_LENGTH];
+    int length;
+    va_list ap;
+    va_start(ap, error);
+    vsprintf(buffer, error, ap);
+    va_end(ap);
+    length = strlen(buffer);
+    sourceLine->error = (char *)malloc(sizeof(char) * length + 1);
+    if (sourceLine->error == NULL)
+    {
+        fprintf(stderr, "malloc error.");
+        return;
+    }
+    strncpy(sourceLine->error, buffer, length + 1);
 }
 
 void fillMovOpcode(InstructionRepresentationPtr instructionRepresentation, SourceLinePtr sourceLine)

@@ -60,6 +60,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     Opcode opcode;
     InstructionRepresentationPtr instructionRepresentation;
     char *errorMessage = "No Error";
+    int lineNumber = 0;
     
     while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
     {
@@ -67,7 +68,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         puts(bufferPos);
         
         
-        line = initSourceLine(bufferPos, 0, sourceFileName);
+        line = initSourceLine(bufferPos, ++lineNumber, sourceFileName);
         
         if (isBlankLine(linePtr))
         {
@@ -141,7 +142,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         
         if (instructionRepresentation == NULL)
         {
-            logParsingError(errorMessage, linePtr);
+            logParsingError("Unable to parse instruction.", linePtr);
             return False;
         }
         

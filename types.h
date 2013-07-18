@@ -27,9 +27,9 @@ typedef enum { Single = 0, Double = 1} InstructionRepetition;
 
 typedef struct tInstructionRepresentation {
     unsigned int comb : 2;
-    unsigned int dest_register : 2;
+    unsigned int dest_register : 3;
     unsigned int dest_addressing : 2;
-    unsigned int source_register : 2;
+    unsigned int source_register : 3;
     unsigned int source_addressing : 2;
     unsigned int opcode : 4;
     unsigned int type : 1;
