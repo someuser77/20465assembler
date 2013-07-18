@@ -23,7 +23,7 @@ typedef enum {
 } Opcode;
 
 typedef enum { InstructionOperandSize_Large = 0, InstructionOperandSize_Small = 1 } InstructionOperandSize;
-typedef enum { Single = 0, Double = 1} InstructionRepetition;
+typedef enum { InstructionRepetition_Single = 0, InstructionRepetition_Double = 1} InstructionRepetition;
 
 typedef struct tInstructionRepresentation {
     unsigned int comb : 2;
