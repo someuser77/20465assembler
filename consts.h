@@ -27,6 +27,9 @@
 #define MAX_LABEL_LENGTH 30
 #define MESSAGE_BUFFER_LENGTH 80
 
+#define COMB_SOURCE_OPERAND_MASK 2
+#define COMB_TARGET_OPERAND_MASK 1
+
 #define EOL '\0'
 #endif	/* CONSTS_H */
 

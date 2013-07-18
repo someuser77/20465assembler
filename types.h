@@ -24,6 +24,7 @@ typedef enum {
 
 typedef enum { InstructionOperandSize_Large = 0, InstructionOperandSize_Small = 1 } InstructionOperandSize;
 typedef enum { InstructionRepetition_Single = 0, InstructionRepetition_Double = 1} InstructionRepetition;
+typedef enum { OperandTargetBits_HighNibble = 1, OperandTargetBits_LowNibble = 0} OperandTargetBits;
 
 typedef struct tInstructionRepresentation {
     unsigned int comb : 2;

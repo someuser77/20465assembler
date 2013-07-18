@@ -9,7 +9,7 @@
 #define NUMBER_OF_OPCODES 16
 #define OPCODE_CONTROL_PARAMETER_SEPERATOR '/'
 
-typedef void (*OpcodHandler)(InstructionRepresentationPtr instructionRepresentation, SourceLinePtr sourceLine);
+typedef void (*OpcodHandler)(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
 
 static const char *OPCODE_TO_NAME[NUMBER_OF_OPCODES] = { NULL };
 static OpcodHandler OPCODE_TO_HANDLER[NUMBER_OF_OPCODES] = { NULL };
@@ -46,7 +46,7 @@ void initNameMap()
 
 void initHandlerMap()
 {
-    void fillMovOpcode(InstructionRepresentationPtr instructionRepresentation, SourceLinePtr sourceLine);
+    void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
     if (OPCODE_TO_HANDLER[0] != NULL) return;
     
     OPCODE_TO_HANDLER[Opcode_mov] = fillMovOpcode; 
@@ -106,7 +106,7 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
 {
     Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
     Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
-    char *errorMessage;
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     const char *opcodeName;
     int opcodeLength = strlen(OPCODE_TO_NAME[opcode]);
     InstructionRepresentationPtr result;
@@ -139,7 +139,10 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
         return NULL;
     }
     
-    (*OPCODE_TO_HANDLER[opcode])(result, sourceLine);
+    /* skip operand size mark */
+    sourceLine->text++;
+    
+    (*OPCODE_TO_HANDLER[opcode])(sourceLine, result);
     
     if (*sourceLine->text != ',')
     {        
@@ -214,7 +217,82 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
     strncpy(sourceLine->error, buffer, length + 1);
 }
 
-void fillMovOpcode(InstructionRepresentationPtr instructionRepresentation, SourceLinePtr sourceLine)
+void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation)
 {
+    Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
+    instructionRepresentation->opcode = Opcode_mov;
     
+    if (instructionRepresentation->type == InstructionOperandSize_Large)
+    {
+        if (!setComb(sourceLine, instructionRepresentation))
+        {
+            return;
+        }
+    }
+}
+
+Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation)
+{
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    int sourceOperandTargetBits;
+    int targetOperandTargetBits;
+    
+    if (instructionRepresentation->type == InstructionOperandSize_Small)
+    {
+        instructionRepresentation->comb = 0;
+        return True;
+    }
+    
+    if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+    {
+        setSourceLineError(sourceLine, "'%c' required on small size operand address", OPCODE_CONTROL_PARAMETER_SEPERATOR);
+        return False;
+    }
+    
+    /* skip the '/' */
+    sourceLine->text++;
+    
+    /* the first operand is always the source and the second is always the target */
+    /* so the first number relates to the source and the second to the target */
+    
+    sourceOperandTargetBits = (*sourceLine->text) - '0';
+    switch (sourceOperandTargetBits)
+    {
+        case OperandTargetBits_HighNibble:
+            instructionRepresentation->comb &= ~COMB_SOURCE_OPERAND_MASK;
+            break;
+        case OperandTargetBits_LowNibble:
+            instructionRepresentation->comb |= COMB_SOURCE_OPERAND_MASK;
+            break;
+        default:
+            setSourceLineError(sourceLine, "Unknown value '%d' for bits to use.", sourceOperandTargetBits);
+            return False;
+    }
+    
+    sourceLine->text++;
+    
+    if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+    {
+        setSourceLineError(sourceLine, "'%c' required between the operand bit sizes to use.", OPCODE_CONTROL_PARAMETER_SEPERATOR);
+        return False;
+    }
+    
+    /* skip the '/' */
+    sourceLine->text++;
+    
+    targetOperandTargetBits = (*sourceLine->text) - '0';
+    switch (targetOperandTargetBits)
+    {
+        case OperandTargetBits_HighNibble:
+            instructionRepresentation->comb &= ~COMB_TARGET_OPERAND_MASK;
+            break;
+        case OperandTargetBits_LowNibble:
+            instructionRepresentation->comb |= COMB_TARGET_OPERAND_MASK;
+            break;
+        default:
+            setSourceLineError(sourceLine, "Unknown value '%d' for bits to use.", targetOperandTargetBits);
+            return False;
+    }
+    
+    return True;
 }
