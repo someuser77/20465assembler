@@ -222,12 +222,12 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
     Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
     instructionRepresentation->opcode = Opcode_mov;
     
-    if (instructionRepresentation->type == InstructionOperandSize_Large)
+    /* if the operand size is small (10 bits instead of 20) we need to set 
+     the comb bits to tell how to address each operand */
+    
+    if (!setComb(sourceLine, instructionRepresentation))
     {
-        if (!setComb(sourceLine, instructionRepresentation))
-        {
-            return;
-        }
+        return;
     }
 }
 
@@ -269,6 +269,7 @@ Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructi
             return False;
     }
     
+    /* skip the value */
     sourceLine->text++;
     
     if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPERATOR)
@@ -293,6 +294,9 @@ Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructi
             setSourceLineError(sourceLine, "Unknown value '%d' for bits to use.", targetOperandTargetBits);
             return False;
     }
+    
+    /* skip the value */
+    sourceLine->text++;
     
     return True;
 }
