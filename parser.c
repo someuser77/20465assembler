@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <errno.h>
 #include "types.h"
 #include "consts.h"
 #include "parser.h"
@@ -36,13 +37,22 @@ void freeSourceLine(SourceLine *line)
     free(line->error);
 }
 
-void logParsingError(char *errorText, SourceLine *line)
+void logParsingErrorFormat(SourceLinePtr line, char *error, ...)
 {
-    fprintf(stderr, "Error parsing file '%s' line %d: %s\n", line->fileName, line->lineNumber, errorText);
+    va_list ap;
+    fprintf(stderr, "Error parsing file '%s' line %d pos %d: ", line->fileName, line->lineNumber, (int)(line->text - line->start + 1));
+    va_start(ap, error);
+    vfprintf(stderr, error, ap);
+    va_end(ap);
     if (line->error != NULL)
     {
         fprintf(stderr, "%s\n", line->error);
     }
+}
+
+void logParsingError(char *error, SourceLine *line)
+{
+    logParsingErrorFormat(line, error);
 }
 
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
@@ -128,11 +138,19 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
         }
         
-        if (!tryGetOpcode(linePtr, &opcode))
+        if (!tryReadOpcode(linePtr, &opcode))
         {
             logParsingError("Unrecognized opcode.", linePtr);
             return False;
         }
+        
+        if (*linePtr->text != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+        {
+            logParsingErrorFormat(linePtr, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPERATOR);
+            return False;
+        }
+        
+        linePtr->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
         
         instructionLayout = getInstructionLayout(linePtr, opcode);
         
@@ -141,20 +159,26 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             logParsingError("Unable to parse opcode.", linePtr);
             return False;
         }
+        
+        if (linePtr->error != NULL)
+        {
+            logParsingError("Error parsing line.", linePtr);
+            return False;
+        }
     }
     
     return True;
-}
-
-void skipWhitespace(SourceLine *sourceLine)
-{
-    while (*sourceLine->text != EOL && isspace(*sourceLine->text)) sourceLine->text++;
 }
 
 char *skipWhitespaceInString(char *str)
 {
     while (*str != EOL && isspace(*str)) str++;
     return str;
+}
+
+void skipWhitespace(SourceLine *sourceLine)
+{
+    sourceLine->text = skipWhitespaceInString(sourceLine->text);
 }
 
 /* tries to reads a label off the source line.
@@ -291,6 +315,7 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
     if (strncmp(sourceLine->text, opcodeName, opcodeLength) == 0)
     {
         sourceLine->text += opcodeLength;
+        sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
     }
     
     result = (InstructionLayoutPtr)malloc(sizeof(InstructionLayout));
@@ -309,6 +334,65 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
     }
     
     (*handler)(sourceLine, result);
-
+    
     return result;
+}
+
+Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
+{
+    void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
+    char *numberStart;
+    char *numberEnd;
+    char *endptr;
+    char *buffer;
+    int length;
+    char *line;
+    
+    line = sourceLine->text;
+    
+    skipWhitespaceInString(line);
+    
+    numberStart = line;
+    
+    numberEnd = numberStart;
+    
+    if (*numberEnd == '-') numberEnd++;
+    
+    while (isdigit(*numberEnd)) numberEnd++;
+    
+    if (numberEnd == numberStart || (numberStart + 1 == numberEnd && *numberEnd == '-'))
+    {
+        setSourceLineError(sourceLine, "Unable to find number in line.");
+        return False;
+    }
+    
+    length = numberEnd - numberStart;
+            
+    buffer = (char *)malloc(sizeof(char) * (length + 1));
+    
+    strncpy(buffer, numberStart, length);
+    
+    buffer[length] = EOL;
+    
+    errno = 0;
+    
+    *value = strtol(buffer, &endptr, 10);
+            
+    if (errno == ERANGE)
+    {
+        setSourceLineError(sourceLine, "Number out of range.");
+        free(buffer);
+        return False;
+    }
+            
+    if ((*value == 0 && endptr == buffer) || (errno != 0 && *value == 0))
+    {
+        setSourceLineError(sourceLine, "Unable to convert value to number.");
+        free(buffer);
+        return False;
+    }
+    
+    sourceLine->text += length;
+    free(buffer);
+    return True;
 }

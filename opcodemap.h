@@ -17,7 +17,7 @@
 typedef void (*OpcodeHandler)(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
 
 Boolean isValidOpcodeName(char *instruction);
-Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode);
+Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode);
 InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcode);
 
 /* returns a string with the opcode name. 

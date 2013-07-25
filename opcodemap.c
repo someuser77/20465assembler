@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <errno.h> 
 #include "consts.h"
 #include "types.h"
 #include "opcodemap.h"
@@ -94,7 +93,7 @@ Boolean isValidOpcodeName(char *instruction)
     return False;
 }
 
-Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode)
+Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode)
 {
     int i;
     
@@ -105,6 +104,7 @@ Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode)
         if (strncmp(sourceLine->text, OPCODE_TO_NAME[i], strlen(OPCODE_TO_NAME[i])) == 0)
         {
             *opcode = i;
+            sourceLine->text += strlen(OPCODE_TO_NAME[i]);
             return True;
         }        
     }
@@ -197,59 +197,31 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
     strncpy(sourceLine->error, buffer, length + 1);
 }
 
-void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+
+void readDirectAddressingOperand(SourceLinePtr sourceLine, InstructionLayoutPtr instruction)
 {
-    Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
-    instructionRepresentation->opcode.opcode = Opcode_mov;
-    
-    if (!readInstructionOperandSize(sourceLine, &instructionRepresentation->opcode))
+    int value;
+    if (*sourceLine->text == DIRECT_ADDRESSING_OPERAND_PREFIX)
     {
+        sourceLine->text += DIRECT_ADDRESSING_OPERAND_PREFIX_LENGTH;
+    }
+    
+    if (!tryReadNumber(sourceLine, &value))
+    {
+        setSourceLineError(sourceLine, "Unable to read number for direct addressing operand.");
         return;
     }
     
-    /* if the operand size is small (10 bits instead of 20) we need to set 
-     the comb bits to tell how to address each operand */
-    
-    if (!setComb(sourceLine, &instructionRepresentation->opcode))
-    {
-        return;
-    }
-    
-    if (*sourceLine->text != OPCODE_TYPE_AND_DBL_SEPERATOR)
-    {
-        setSourceLineError(sourceLine, "Missing '%c' character between operand type and dbl.", OPCODE_TYPE_AND_DBL_SEPERATOR);
-        return;
-    }
-    
-    if (!readInstructionRepetition(sourceLine, &instructionRepresentation->opcode))
-    {
-        return;
-    }
-    
-    skipWhitespace(sourceLine);
-    
-    if (*sourceLine->text == EOL)
-    {
-        setSourceLineError(sourceLine, "Missing operands.");
-        return;
-    }
-    
-    
+    instruction->leftOperandAddressing =  OperandAddressing_Direct;
+    instruction->leftOperand.value = value;
 }
 
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
-    char *operandStart;
     char *operandEnd;
-    char *endptr;
-    char *buffer;
-    int length;
-    int directAddressValue;
-    int registerId;
     
     skipWhitespace(sourceLine);
     
-    operandStart = sourceLine->text;
     
     operandEnd = strchr(sourceLine->text, OPERAND_SEPERATOR);
     
@@ -259,40 +231,12 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
         return False;
     }
     
-    length = operandEnd - operandStart;
-    
     if ((validAddressing & ValidOperandAddressing_Direct) == ValidOperandAddressing_Direct)
     {
         /* try to get a direct addressing */
         if ((*sourceLine->text) == DIRECT_ADDRESSING_OPERAND_PREFIX)
         {
-            operandStart++;
-            length = operandEnd - operandStart;
-            
-            buffer = (char *)malloc(sizeof(char) * (length + 1));
-    
-            strncpy(buffer, operandStart, length);
-            buffer[length] = EOL;
-            
-            directAddressValue = strtol(buffer, &endptr, 10);
-            
-            if (errno == ERANGE)
-            {
-                setSourceLineError(sourceLine, "Value out of range when reading direct address value.");
-                free(buffer);
-                return False;
-            }
-            
-            if ((directAddressValue == 0 && endptr == buffer) || *endptr == EOL)
-            {
-                setSourceLineError(sourceLine, "Unable to convert direct address to number.");
-                free(buffer);
-                return False;
-            }
-            
-            instruction->leftOperandAddressing =  OperandAddressing_Direct;
-            instruction->leftOperand.value = directAddressValue;
-            free(buffer);
+            readDirectAddressingOperand(sourceLine, instruction);
             return True;
         }
     }
@@ -301,6 +245,7 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
     {
         if ((*sourceLine->text) == REGISTER_PREFIX)
         {
+            /*
             operandStart++;
             length = operandEnd - operandStart;
             
@@ -336,6 +281,7 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
             instruction->leftOperand.reg[1] = registerId + '0';
             instruction->leftOperand.reg[2] = '\0';
             free(buffer);
+            */
             return True;
         }
     }
@@ -346,10 +292,6 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
     return True;
 }
 
-void readDirectAddressingOperand()
-{
-    
-}
 
 Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
 {
@@ -362,20 +304,18 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     int sourceOperandTargetBits;
     int targetOperandTargetBits;
     
-    if (instructionRepresentation->type == InstructionOperandSize_Small)
+    if (instructionRepresentation->type == InstructionOperandSize_Large)
     {
+        /* the instruction operates on the entire word size so 
+           there is no need to set cmb */
         instructionRepresentation->comb = 0;
         return True;
     }
     
-    if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+    if ((*sourceLine->text) == OPCODE_CONTROL_PARAMETER_SEPERATOR)
     {
-        setSourceLineError(sourceLine, "'%c' required on small size operand address", OPCODE_CONTROL_PARAMETER_SEPERATOR);
-        return False;
+        sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
     }
-    
-    /* skip the '/' */
-    sourceLine->text++;
     
     /* the first operand is always the source and the second is always the target */
     /* so the first number relates to the source and the second to the target */
@@ -424,4 +364,47 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     sourceLine->text++;
     
     return True;
+}
+
+
+void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
+    instructionRepresentation->opcode.opcode = Opcode_mov;
+    
+    if (!readInstructionOperandSize(sourceLine, &instructionRepresentation->opcode))
+    {
+        return;
+    }
+    
+    /* if the operand size is small (10 bits instead of 20) we need to set 
+     the comb bits to tell how to address each operand */
+    
+    if (!setComb(sourceLine, &instructionRepresentation->opcode))
+    {
+        return;
+    }
+    
+    if (*sourceLine->text != OPCODE_TYPE_AND_DBL_SEPERATOR)
+    {
+        setSourceLineError(sourceLine, "Missing '%c' character between operand type and dbl.", OPCODE_TYPE_AND_DBL_SEPERATOR);
+        return;
+    }
+    
+    sourceLine->text += OPCODE_TYPE_AND_DBL_SEPERATOR_LENGTH;
+    
+    if (!readInstructionRepetition(sourceLine, &instructionRepresentation->opcode))
+    {
+        return;
+    }
+    
+    skipWhitespace(sourceLine);
+    
+    if (*sourceLine->text == EOL)
+    {
+        setSourceLineError(sourceLine, "Missing operands.");
+        return;
+    }
+    
+    readSourceOperand(sourceLine, ValidOperandAddressing_All, instructionRepresentation);
 }
