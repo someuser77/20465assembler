@@ -198,12 +198,12 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
 }
 
 
-void readDirectAddressingOperand(SourceLinePtr sourceLine, InstructionLayoutPtr instruction)
+void readInstantAddressingOperand(SourceLinePtr sourceLine, InstructionLayoutPtr instruction)
 {
     int value;
-    if (*sourceLine->text == DIRECT_ADDRESSING_OPERAND_PREFIX)
+    if (*sourceLine->text == INSTANT_ADDRESSING_OPERAND_PREFIX)
     {
-        sourceLine->text += DIRECT_ADDRESSING_OPERAND_PREFIX_LENGTH;
+        sourceLine->text += INSTANT_ADDRESSING_OPERAND_PREFIX_LENGTH;
     }
     
     if (!tryReadNumber(sourceLine, &value))
@@ -231,12 +231,12 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
         return False;
     }
     
-    if ((validAddressing & ValidOperandAddressing_Direct) == ValidOperandAddressing_Direct)
+    if ((validAddressing & ValidOperandAddressing_Instant) == ValidOperandAddressing_Instant)
     {
         /* try to get a direct addressing */
-        if ((*sourceLine->text) == DIRECT_ADDRESSING_OPERAND_PREFIX)
+        if ((*sourceLine->text) == INSTANT_ADDRESSING_OPERAND_PREFIX)
         {
-            readDirectAddressingOperand(sourceLine, instruction);
+            readInstantAddressingOperand(sourceLine, instruction);
             return True;
         }
     }
