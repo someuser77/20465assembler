@@ -198,7 +198,7 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
 }
 
 
-void readInstantAddressingOperand(SourceLinePtr sourceLine, InstructionLayoutPtr instruction)
+void readInstantAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
     int value;
     if (*sourceLine->text == INSTANT_ADDRESSING_OPERAND_PREFIX)
@@ -212,16 +212,42 @@ void readInstantAddressingOperand(SourceLinePtr sourceLine, InstructionLayoutPtr
         return;
     }
     
-    instruction->leftOperandAddressing =  OperandAddressing_Direct;
-    instruction->leftOperand.value = value;
+    operand->addressing =  OperandAddressing_Instant;
+    operand->address.value = value;
+}
+
+void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
+{
+    int registerId;
+    if (*sourceLine->text == REGISTER_NAME_PREFIX)
+    {
+        sourceLine->text += REGISTER_NAME_PREFIX_LENGTH;
+    }
+    
+    if (!tryReadNumber(sourceLine, &registerId))
+    {
+        setSourceLineError(sourceLine, "Unable to read register id for direct register address operand.");
+        return;
+    }
+    
+    if (!IS_VALID_REGISTER_ID(registerId))
+    {
+        setSourceLineError(sourceLine, "%d is not a valid register id.", registerId);
+        return;
+    }
+    
+    operand->addressing =  OperandAddressing_DirectRegister;
+    operand->address.reg[0] = REGISTER_NAME_PREFIX;
+    operand->address.reg[1] = registerId + '0';
+    operand->address.reg[2] = EOL;
 }
 
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
+    Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
     char *operandEnd;
     
     skipWhitespace(sourceLine);
-    
     
     operandEnd = strchr(sourceLine->text, OPERAND_SEPERATOR);
     
@@ -230,62 +256,11 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
         setSourceLineError(sourceLine, "Missing operand separator '%c'.", OPERAND_SEPERATOR);
         return False;
     }
-    
-    if ((validAddressing & ValidOperandAddressing_Instant) == ValidOperandAddressing_Instant)
+
+    if (!readOperand(sourceLine, validAddressing, &instruction->leftOperand))
     {
-        /* try to get a direct addressing */
-        if ((*sourceLine->text) == INSTANT_ADDRESSING_OPERAND_PREFIX)
-        {
-            readInstantAddressingOperand(sourceLine, instruction);
-            return True;
-        }
+        return False;
     }
-    
-    if ((validAddressing & ValidOperandAddressing_DirectRegister) == ValidOperandAddressing_DirectRegister)
-    {
-        if ((*sourceLine->text) == REGISTER_PREFIX)
-        {
-            /*
-            operandStart++;
-            length = operandEnd - operandStart;
-            
-            buffer = (char *)malloc(sizeof(char) * (length + 1));
-    
-            strncpy(buffer, operandStart, length);
-            buffer[length] = EOL;
-            
-            registerId = strtol(buffer, &endptr, 10);
-            if (errno == ERANGE)
-            {
-                setSourceLineError(sourceLine, "Value out of range when reading register id value.");
-                free(buffer);
-                return False;
-            }
-            
-            if ((registerId == 0 && endptr == buffer) || *endptr == EOL)
-            {
-                setSourceLineError(sourceLine, "Unable to convert register id to number.");
-                free(buffer);
-                return False;
-            }
-            
-            if (!IS_VALID_REGISTER_ID(registerId))
-            {
-                setSourceLineError(sourceLine, "Register ID is not in the valid range of %d and %d", MIN_REGISTER_ID, MAX_REGISTER_ID);
-                free(buffer);
-                return False;
-            }
-            
-            instruction->leftOperandAddressing =  OperandAddressing_Direct;
-            instruction->leftOperand.reg[0] = REGISTER_PREFIX;
-            instruction->leftOperand.reg[1] = registerId + '0';
-            instruction->leftOperand.reg[2] = '\0';
-            free(buffer);
-            */
-            return True;
-        }
-    }
-    
     
     sourceLine->text = operandEnd + 1;
     
@@ -293,9 +268,66 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
 }
 
 
-Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
+Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
+    Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
+    char *operandEnd;
+    
+    skipWhitespace(sourceLine);
+    
+    operandEnd = strchr(sourceLine->text, EOL);
+    
+    if (operandEnd == NULL)
+    {
+        setSourceLineError(sourceLine, "Missing EOL.");
+        return False;
+    }
+
+    if (!readOperand(sourceLine, validAddressing, &instruction->rightOperand))
+    {
+        return False;
+    }
+    
+    skipWhitespace(sourceLine);
+    
+    if (*sourceLine->text != EOL)
+    {
+        setSourceLineError(sourceLine, "There should be no text after the second operand.");
+        return False;
+    }
+    
     return True;
+}
+
+Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand)
+{
+    if ((validAddressing & ValidOperandAddressing_Instant) == ValidOperandAddressing_Instant)
+    {
+        if ((*sourceLine->text) == INSTANT_ADDRESSING_OPERAND_PREFIX)
+        {
+            readInstantAddressingOperand(sourceLine, operand);
+#ifdef DEBUG
+            printf("Found an instant address operand with the value of %d\n", operand->address.value);
+#endif
+            return True;
+        }
+    }
+    
+    if ((validAddressing & ValidOperandAddressing_DirectRegister) == ValidOperandAddressing_DirectRegister)
+    {
+        if ((*sourceLine->text) == REGISTER_NAME_PREFIX)
+        {
+            readDirectRegisterAddressingOperand(sourceLine, operand);
+#ifdef DEBUG
+            printf("Found a direct register address operand with the value of %s\n", operand->address.reg);
+#endif
+            return True;
+        }
+    }
+    
+    
+    setSourceLineError(sourceLine, "Unknown operand addressing scheme.");
+    return False;
 }
 
 Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentation)
@@ -407,4 +439,8 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
     }
     
     readSourceOperand(sourceLine, ValidOperandAddressing_All, instructionRepresentation);
+    
+    if (sourceLine->error != NULL) return;
+    
+    readDestinationOperand(sourceLine, ValidOperandAddressing_All, instructionRepresentation);
 }

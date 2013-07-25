@@ -141,13 +141,13 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         if (!tryReadOpcode(linePtr, &opcode))
         {
             logParsingError("Unrecognized opcode.", linePtr);
-            return False;
+            continue;
         }
         
         if (*linePtr->text != OPCODE_CONTROL_PARAMETER_SEPERATOR)
         {
             logParsingErrorFormat(linePtr, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPERATOR);
-            return False;
+            continue;
         }
         
         linePtr->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
@@ -157,13 +157,13 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         if (instructionLayout == NULL)
         {
             logParsingError("Unable to parse opcode.", linePtr);
-            return False;
+            continue;
         }
         
         if (linePtr->error != NULL)
         {
             logParsingError("Error parsing line.", linePtr);
-            return False;
+            continue;
         }
     }
     
@@ -244,7 +244,7 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
 
     if (length == REGISTER_NAME_LENGTH)
     {
-        if (label[0] == REGISTER_PREFIX && IS_VALID_REGISTER_ID(label[1] - '0'))
+        if (label[0] == REGISTER_NAME_PREFIX && IS_VALID_REGISTER_ID(label[1] - '0'))
         {
             logParsingError("Label must not be a valid register name", sourceLine);
             valid = False;

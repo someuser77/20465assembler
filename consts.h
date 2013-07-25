@@ -13,7 +13,8 @@
 #define LABEL_TOKEN ':'
 #define COMMENT_TOKEN ';'
 #define GUIDANCE_TOLEN '.'
-#define REGISTER_PREFIX 'r'
+#define REGISTER_NAME_PREFIX 'r'
+#define REGISTER_NAME_PREFIX_LENGTH 1
 #define MIN_REGISTER_ID 0
 #define MAX_REGISTER_ID 7
 #define IS_VALID_REGISTER_ID(id) ((id) >= MIN_REGISTER_ID && (id) <= MAX_REGISTER_ID)

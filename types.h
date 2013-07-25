@@ -75,12 +75,16 @@ typedef union uTypedAddress {
     char reg[REGISTER_NAME_LENGTH + 1];
 } TypedAddress;
 
+typedef struct tOperand
+{
+    OperandAddressing addressing;
+    TypedAddress address;
+} Operand, *OperandPtr;
+
 typedef struct tInstructionLayout {
     OpcodeLayout opcode; /* this might be illegal :-) */ 
-    OperandAddressing leftOperandAddressing;
-    TypedAddress leftOperand;
-    OperandAddressing rightOperandAddressing;
-    TypedAddress rightOperand;
+    Operand leftOperand;
+    Operand rightOperand;
 } InstructionLayout, *InstructionLayoutPtr;
 
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
