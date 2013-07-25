@@ -11,11 +11,11 @@ typedef enum {
             ValidOperandAddressing_None = 0, 
             ValidOperandAddressing_Instant = 1, 
             ValidOperandAddressing_Direct = 2, 
-            ValidOperandAddressing_VaringIndexing = 4, 
+            ValidOperandAddressing_VaryingIndexing = 4, 
             ValidOperandAddressing_DirectRegister = 8,
             ValidOperandAddressing_All = ValidOperandAddressing_Instant | 
                     ValidOperandAddressing_Direct | 
-                    ValidOperandAddressing_VaringIndexing | 
+                    ValidOperandAddressing_VaryingIndexing | 
                     ValidOperandAddressing_DirectRegister
 } ValidOperandAddressing;
 
@@ -56,6 +56,8 @@ void initNameMap()
 void initHandlerMap()
 {
     void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    
     if (OPCODE_TO_HANDLER[0] != NULL) return;
     
     OPCODE_TO_HANDLER[Opcode_mov] = fillMovOpcode; 
@@ -64,7 +66,7 @@ void initHandlerMap()
     OPCODE_TO_HANDLER[Opcode_sub] =  NULL;
     OPCODE_TO_HANDLER[Opcode_not] =  NULL;
     OPCODE_TO_HANDLER[Opcode_clr] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_lea] =  NULL;
+    OPCODE_TO_HANDLER[Opcode_lea] =  fillLeaOpcode;
     OPCODE_TO_HANDLER[Opcode_inc] =  NULL;
     OPCODE_TO_HANDLER[Opcode_dec] =  NULL;
     OPCODE_TO_HANDLER[Opcode_jmp] =  NULL;
@@ -242,6 +244,105 @@ void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr op
     operand->address.reg[2] = EOL;
 }
 
+void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
+{
+    char *start, *end;
+    int length;
+    
+    start = sourceLine->text;
+    end = strchr(start, OPERAND_SEPERATOR);
+    if (end == NULL)
+    {
+        end = strchr(start, EOL);
+    }
+    
+    if (!isValidLabel(sourceLine, start, end))
+    {
+        setSourceLineError(sourceLine, "Invalid label '%s' for direct addressing operand.", start);
+        return;
+    }
+        
+    length = end - start;
+    operand->addressing =  OperandAddressing_Direct;
+    operand->address.label = (char *)malloc(sizeof(char) * (length + 1));
+    strncpy(operand->address.label, start, length);
+    operand->address.label[length] = EOL;
+}
+
+char *cloneString(char *str, int length)
+{
+    char *result;
+    result = (char *)malloc(sizeof(char) * length + 1);
+    strncpy(result, str, length);
+    result[length] = EOL;
+    return result;
+}
+
+void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
+{
+    char *start, *end, *openingBracket, *closingBracket;
+    char *label;
+    int length;
+    
+    start = sourceLine->text;
+    end = strchr(start, OPERAND_SEPERATOR);
+
+    if (end == NULL)
+    {
+        end = strchr(start, EOL);
+        end -= 1; /* EOL */
+    } 
+    else 
+    {
+        end -= OPERAND_SEPERATOR_LENGTH;
+    }
+    
+
+    openingBracket = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
+    if (openingBracket == NULL)
+    {
+        setSourceLineError(sourceLine, "Missing '%c' token from varying address operand.", VARYING_INDEXING_OPENING_TOKEN);
+        return;
+    }
+    
+    closingBracket = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
+    if (closingBracket == NULL)
+    {
+        setSourceLineError(sourceLine, "Missing '%c' token from varying address operand.", VARYING_INDEXING_CLOSING_TOKEN);
+        return;
+    }
+    
+    label = cloneString(start, openingBracket - start);
+    
+    if (*(openingBracket + VARYING_INDEXING_OPENING_TOKEN_LENGTH) == VARYING_INDEXING_LABEL_TOKEN)
+    {
+        start = openingBracket + VARYING_INDEXING_OPENING_TOKEN_LENGTH + VARYING_INDEXING_LABEL_TOKEN_LENGTH;
+        if (!isValidLabel(sourceLine, start, closingBracket - 1))
+        {
+            setSourceLineError(sourceLine, "Invalid label name for labeled varying indexing.");
+            return;
+        }
+        
+        length = end - start;
+        
+        operand->addressing = OperandAddressing_VaryingIndexing;
+        operand->address.varyingAddress.label = label;
+        operand->address.varyingAddress.adressing = OperandVaryingAddressing_Direct;
+        operand->address.varyingAddress.address.label = cloneString(start, length);
+        
+        
+        sourceLine->text = closingBracket + VARYING_INDEXING_CLOSING_TOKEN_LENGTH;
+        return;
+    }
+    
+    length = end - start;
+    
+    operand->addressing =  OperandAddressing_Direct;
+    operand->address.label = (char *)malloc(sizeof(char) * (length + 1));
+    strncpy(operand->address.label, start, length);
+    operand->address.label[length] = EOL;
+}
+
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
     Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
@@ -262,13 +363,13 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
         return False;
     }
     
-    sourceLine->text = operandEnd + 1;
-    
     return True;
 }
 
 
-Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
+Boolean readDestinationOperand(SourceLinePtr sourceLine, 
+        ValidOperandAddressing validAddressing, 
+        InstructionLayoutPtr instruction)
 {
     Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
     char *operandEnd;
@@ -299,9 +400,18 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing 
     return True;
 }
 
+Boolean addressingTypeIsAllowed(ValidOperandAddressing addressingMask, ValidOperandAddressing addressingTypeToCheck)
+{
+    return (addressingMask & addressingTypeToCheck) == addressingTypeToCheck;
+}
+
 Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand)
 {
-    if ((validAddressing & ValidOperandAddressing_Instant) == ValidOperandAddressing_Instant)
+    char *start, *end, *openingBracket, *closingBracket;
+    
+    skipWhitespace(sourceLine);
+    
+    if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_Instant))
     {
         if ((*sourceLine->text) == INSTANT_ADDRESSING_OPERAND_PREFIX)
         {
@@ -313,7 +423,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
         }
     }
     
-    if ((validAddressing & ValidOperandAddressing_DirectRegister) == ValidOperandAddressing_DirectRegister)
+    if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_DirectRegister))
     {
         if ((*sourceLine->text) == REGISTER_NAME_PREFIX)
         {
@@ -323,6 +433,32 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 #endif
             return True;
         }
+    }
+    
+    if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_VaryingIndexing))
+    {
+        start = sourceLine->text;
+        end = strchr(start, OPERAND_SEPERATOR);
+        if (end == NULL)
+        {
+            end = strchr(start, EOL);
+        }
+        openingBracket = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
+        closingBracket = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
+        
+        if (openingBracket != NULL && 
+            closingBracket != NULL && 
+            openingBracket < closingBracket && 
+            closingBracket <= end)
+        {
+            readVaryingAddressingOperand(sourceLine, operand);
+#ifdef DEBUG
+            printf("Found varying addressing operand %s with direct address %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.label);
+#endif
+            
+            return True;
+        }
+        
     }
     
     
@@ -398,11 +534,9 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     return True;
 }
 
-
-void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+void fillSingleOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
 {
     Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
-    instructionRepresentation->opcode.opcode = Opcode_mov;
     
     if (!readInstructionOperandSize(sourceLine, &instructionRepresentation->opcode))
     {
@@ -438,9 +572,52 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
         return;
     }
     
-    readSourceOperand(sourceLine, ValidOperandAddressing_All, instructionRepresentation);
+    readSourceOperand(sourceLine, validAddressing, instructionRepresentation);
+    
+}
+
+void fillDoubleOperandOpcode(SourceLinePtr sourceLine, 
+        InstructionLayoutPtr instructionRepresentation, 
+        ValidOperandAddressing validSourceAddressing, 
+        ValidOperandAddressing validDestinationAddressing)
+{
+    fillSingleOperandOpcode(sourceLine, instructionRepresentation, validSourceAddressing);
     
     if (sourceLine->error != NULL) return;
     
-    readDestinationOperand(sourceLine, ValidOperandAddressing_All, instructionRepresentation);
+    skipWhitespace(sourceLine);
+    
+    if (*sourceLine->text != OPERAND_SEPERATOR)
+    {
+        setSourceLineError(sourceLine, "Missing second operand.");
+        return;
+    }
+    
+    sourceLine->text += OPERAND_SEPERATOR_LENGTH;
+    
+    skipWhitespace(sourceLine);
+    
+    readDestinationOperand(sourceLine, validDestinationAddressing, instructionRepresentation);
+}
+
+void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    ValidOperandAddressing validDestinationAddressing = ValidOperandAddressing_Direct |
+            ValidOperandAddressing_DirectRegister |
+            ValidOperandAddressing_VaryingIndexing;
+            
+    instructionRepresentation->opcode.opcode = Opcode_mov;
+    
+    fillDoubleOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validDestinationAddressing);
+}
+
+void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_Direct | 
+            ValidOperandAddressing_DirectRegister |
+            ValidOperandAddressing_VaryingIndexing;
+    
+    instructionRepresentation->opcode.opcode = Opcode_lea;
+    
+    fillDoubleOperandOpcode(sourceLine, instructionRepresentation, validAddressing, validAddressing);
 }

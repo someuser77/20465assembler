@@ -75,10 +75,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
     {
         bufferPos = buffer;
+        lineNumber++;
 #ifdef DEBUG
-        puts(bufferPos);
+        printf("\n%d: %s\n", lineNumber, buffer);
 #endif
-        line = initSourceLine(bufferPos, ++lineNumber, sourceFileName);
+        line = initSourceLine(bufferPos, lineNumber, sourceFileName);
         
         if (isBlankLine(linePtr))
         {
@@ -214,12 +215,12 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     Boolean valid = True;
     int length;
     int i;
-    char *label = sourceLine->text;
+    char *label = labelStart;
     char msg[MESSAGE_BUFFER_LENGTH] = {0};
     
-    if (!isalpha(*label))
+    if (!isalpha(*labelStart))
     {
-        logParsingError("Label must start with a letter:", sourceLine);
+        logParsingError("Label must start with a letter: ", sourceLine);
         valid = False;
     }
     
@@ -329,7 +330,7 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
     
     if (handler == NULL)
     {
-        setSourceLineError(sourceLine, "No handler found for opcode %s", opcodeName);
+        setSourceLineError(sourceLine, "No handler found for opcode '%s'.", opcodeName);
         return NULL;
     }
     

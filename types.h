@@ -45,8 +45,11 @@ typedef enum { InstructionRepetition_Single = 0, InstructionRepetition_Double = 
 typedef enum { OperandTargetBits_HighNibble = 1, OperandTargetBits_LowNibble = 0 } OperandTargetBits;
 typedef enum { OperandAddressing_Instant = 0, 
         OperandAddressing_Direct = 1, 
-        OperandAddressing_VaringIndexing = 2, 
+        OperandAddressing_VaryingIndexing = 2, 
         OperandAddressing_DirectRegister = 3 } OperandAddressing;
+typedef enum { OperandVaryingAddressing_Instant, 
+        OperandVaryingAddressing_Direct,  
+        OperandVaryingAddressing_DirectRegister } OperandVaryingAddressing;        
 
 /* The memory representation of an opcode in the target machine */
 typedef struct tOpcodeLayout {
@@ -68,10 +71,17 @@ typedef union uSimpleAddress {
     char reg[REGISTER_NAME_LENGTH + 1];
 } SimpleAddress;
 
+typedef struct tVaryingAddress
+{
+    char *label;
+    SimpleAddress address;
+    OperandVaryingAddressing adressing;
+} VaryingAddress, *VaryingAddressPtr;
+
 typedef union uTypedAddress {
     char *label;
     int value;
-    SimpleAddress mixedAddress;
+    VaryingAddress varyingAddress;
     char reg[REGISTER_NAME_LENGTH + 1];
 } TypedAddress;
 
