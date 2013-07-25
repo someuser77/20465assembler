@@ -14,11 +14,11 @@
 #define NUMBER_OF_OPCODES 16
 
 
-typedef void (*OpcodeHandler)(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
+typedef void (*OpcodeHandler)(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
 
 Boolean isValidOpcodeName(char *instruction);
 Boolean tryGetOpcode(SourceLinePtr sourceLine, Opcode *opcode);
-InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode);
+InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcode);
 
 /* returns a string with the opcode name. 
    must be freed after use. */

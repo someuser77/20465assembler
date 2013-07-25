@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <errno.h> 
 #include "consts.h"
 #include "types.h"
 #include "opcodemap.h"
@@ -13,7 +14,10 @@ typedef enum {
             ValidOperandAddressing_Direct = 2, 
             ValidOperandAddressing_VaringIndexing = 4, 
             ValidOperandAddressing_DirectRegister = 8,
-            ValidOperandAddressing_All = ValidOperandAddressing_Instant | ValidOperandAddressing_Direct | ValidOperandAddressing_VaringIndexing | ValidOperandAddressing_DirectRegister
+            ValidOperandAddressing_All = ValidOperandAddressing_Instant | 
+                    ValidOperandAddressing_Direct | 
+                    ValidOperandAddressing_VaringIndexing | 
+                    ValidOperandAddressing_DirectRegister
 } ValidOperandAddressing;
 
 
@@ -25,7 +29,7 @@ static OpcodeHandler OPCODE_TO_HANDLER[NUMBER_OF_OPCODES] = { NULL };
 */
 typedef struct tOpcodeMapEntry{
     char name[OPCODE_NAME_LENGTH];
-    InstructionRepresentation instructionRepresentation;
+    OpcodeLayout opcode;
 } OpcodeMapEntry, *OpcodeMapEntryPtr;
 
 void initNameMap()
@@ -52,7 +56,7 @@ void initNameMap()
 
 void initHandlerMap()
 {
-    void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
+    void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     if (OPCODE_TO_HANDLER[0] != NULL) return;
     
     OPCODE_TO_HANDLER[Opcode_mov] = fillMovOpcode; 
@@ -128,7 +132,7 @@ OpcodeHandler getOpcodeHandler(Opcode opcode)
     return OPCODE_TO_HANDLER[opcode];
 }
 
-Boolean readInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+Boolean readInstructionOperandSize(SourceLinePtr sourceLine, OpcodeLayoutPtr instruction)
 {
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     /* assumed to be a single character, otherwise more 
@@ -153,7 +157,7 @@ Boolean readInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresen
     return True;
 }
 
-Boolean readInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction)
+Boolean readInstructionRepetition(SourceLinePtr sourceLine, OpcodeLayoutPtr instruction)
 {
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     /* assumed to be a single character, otherwise more 
@@ -193,12 +197,12 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
     strncpy(sourceLine->error, buffer, length + 1);
 }
 
-void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation)
+void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
-    Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation);
+    Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
     instructionRepresentation->opcode = Opcode_mov;
     
-    if (!readInstructionOperandSize(sourceLine, instructionRepresentation))
+    if (!readInstructionOperandSize(sourceLine, instructionRepresentation->opcode))
     {
         return;
     }
@@ -206,7 +210,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
     /* if the operand size is small (10 bits instead of 20) we need to set 
      the comb bits to tell how to address each operand */
     
-    if (!setComb(sourceLine, instructionRepresentation))
+    if (!setComb(sourceLine, instructionRepresentation->opcode))
     {
         return;
     }
@@ -217,7 +221,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
         return;
     }
     
-    if (!readInstructionRepetition(sourceLine, instructionRepresentation))
+    if (!readInstructionRepetition(sourceLine, instructionRepresentation->opcode))
     {
         return;
     }
@@ -229,20 +233,72 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionRepresentationPtr instru
         setSourceLineError(sourceLine, "Missing operands.");
         return;
     }
-        
+    
+    
 }
 
-Boolean readSourceOperand()
+Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
+{
+    char *operandStart;
+    char *operandEnd;
+    char *endptr;
+    char *buffer;
+    int length;
+    int directAddressValue;
+    
+    skipWhitespace(sourceLine);
+    
+    operandStart = sourceLine->text;
+    
+    operandEnd = strchr(sourceLine->text, OPERAND_SEPERATOR);
+    
+    if (operandEnd == NULL)
+    {
+        setSourceLineError(sourceLine, "Missing operand separator '%c'.", OPERAND_SEPERATOR);
+        return False;
+    }
+    
+    length = operandEnd - operandStart;
+    
+    if ((validAddressing & ValidOperandAddressing_Direct) == ValidOperandAddressing_Direct)
+    {
+        /* try to get a direct addressing */
+        if ((*sourceLine->text) == DIRECT_ADDRESSING_OPERAND_PREFIX)
+        {
+            operandStart++;
+            length = operandEnd - operandStart;
+            
+            buffer = (char *)malloc(sizeof(char) * (length + 1));
+    
+            strncpy(buffer, operandStart, length);
+            buffer[length] = EOL;
+            
+            directAddressValue = strtol(buffer, &endptr, 10);
+            if (errno == ERANGE)
+            {
+                setSourceLineError(sourceLine, "Value out of range when reading direct address value.");
+                return False;
+            }
+            
+            if ((directAddressValue == 0 && endptr == buffer) || *endptr == EOL)
+            {
+                setSourceLineError(sourceLine, "Unable to convert direct address to number.");
+                return False;
+            }
+        }
+    }
+    
+    sourceLine->text = operandEnd + 1;
+    
+    return True;
+}
+
+Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
 {
     return True;
 }
 
-Boolean readDestinationOperand()
-{
-    return True;
-}
-
-Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructionRepresentation)
+Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentation)
 {
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     int sourceOperandTargetBits;
@@ -311,6 +367,3 @@ Boolean setComb(SourceLinePtr sourceLine, InstructionRepresentationPtr instructi
     
     return True;
 }
-
-
-

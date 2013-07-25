@@ -8,9 +8,6 @@
 #include "parser.h"
 #include "opcodemap.h"
 
-#define REGISTER_NAME_LENGTH 2
-
-
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
     SourceLine line;
@@ -35,6 +32,7 @@ void freeSourceLine(SourceLine *line)
 {
     free(line->text);
     free(line->fileName);
+    /* calling free on NULL should be safe */
     free(line->error);
 }
 
@@ -49,7 +47,8 @@ void logParsingError(char *errorText, SourceLine *line)
 
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
 {
-    char buffer[LINE_BUFFER_LENGTH + 1] = {0};
+    char *tryReadLabel(SourceLine *sourceLine);
+    char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
     int dataCounter = 0;
     int instructionCounter = 0;
     SourceLine line;
@@ -59,16 +58,16 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     Boolean foundSymbol;
     GuidanceType guidanceType;
     Opcode opcode;
-    InstructionRepresentationPtr instructionRepresentation;
+    InstructionLayoutPtr instructionLayout;
     
     int lineNumber = 0;
     
-    while (fgets(buffer, LINE_BUFFER_LENGTH, sourceFile) != NULL)
+    while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
     {
         bufferPos = buffer;
+#ifdef DEBUG
         puts(bufferPos);
-        
-        
+#endif
         line = initSourceLine(bufferPos, ++lineNumber, sourceFileName);
         
         if (isBlankLine(linePtr))
@@ -85,12 +84,12 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             continue;
         }
 
-        label = getLabel(linePtr);
+        label = tryReadLabel(linePtr);
         if (label != NULL)
         {
+#ifdef DEBUG
             printf("Label: %s\n", label);
-            linePtr->text += strlen(label);
-            linePtr->text += 1; /* skip the ':' */
+#endif
             foundSymbol = True;
         } 
         else
@@ -110,20 +109,16 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                         insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         /* insert into memory */
                         continue;
-                        break;
                     case GuidanceType_String:
                         insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         /* insert into memory */
                         continue;
-                        break;
                     case GuidanceType_Entry:
                         insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
                         continue;
-                        break;
                     case GuidanceType_Extern:
                         insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
                         continue;
-                        break;
                 }                
             }
         }
@@ -139,11 +134,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             return False;
         }
         
-        instructionRepresentation = getInstructionRepresentation(linePtr, opcode);
+        instructionLayout = getInstructionLayout(linePtr, opcode);
         
-        if (instructionRepresentation == NULL)
+        if (instructionLayout == NULL)
         {
-            logParsingError("Unable to parse instruction.", linePtr);
+            logParsingError("Unable to parse opcode.", linePtr);
             return False;
         }
     }
@@ -162,7 +157,10 @@ char *skipWhitespaceInString(char *str)
     return str;
 }
 
-char *getLabel(SourceLine *sourceLine)
+/* tries to reads a label off the source line.
+ * if there is no label NULL is returned.
+ * if label is not valid the cursor is not moved. */
+char *tryReadLabel(SourceLine *sourceLine)
 {
     char *label;
     char *line = sourceLine->text;
@@ -175,11 +173,15 @@ char *getLabel(SourceLine *sourceLine)
     label = line;
     
     if (!isValidLabel(sourceLine, label, labelEnd)) return NULL;
+    
     length = labelEnd - line;
+    
     label = (char *)malloc(sizeof(char) * (length + 1));
     strncpy(label, sourceLine->text, length);
     label[length] = EOL;
     
+    sourceLine->text += length;
+    sourceLine->text += strlen(":");
     return label;
 }
 
@@ -269,15 +271,15 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
 }
 
 
-InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLine, Opcode opcode)
+InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcode)
 {
-    Boolean getInstructionOperandSize(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
-    Boolean getInstructionRepetition(SourceLinePtr sourceLine, InstructionRepresentationPtr instruction);
+    Boolean getInstructionOperandSize(SourceLinePtr sourceLine, OpcodeLayoutPtr instruction);
+    Boolean getInstructionRepetition(SourceLinePtr sourceLine, OpcodeLayoutPtr instruction);
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     char *opcodeNamePtr;
     char opcodeName[OPCODE_NAME_LENGTH + 1] = {0};
     int opcodeLength;
-    InstructionRepresentationPtr result;
+    InstructionLayoutPtr result;
     OpcodeHandler handler;
     
     opcodeNamePtr = getOpcodeName(opcode);
@@ -291,7 +293,7 @@ InstructionRepresentationPtr getInstructionRepresentation(SourceLinePtr sourceLi
         sourceLine->text += opcodeLength;
     }
     
-    result = (InstructionRepresentationPtr)malloc(sizeof(InstructionRepresentation));
+    result = (InstructionLayoutPtr)malloc(sizeof(InstructionLayout));
     memset(result, 0, sizeof(InstructionRepetition));
     
     
