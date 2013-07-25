@@ -43,7 +43,10 @@ typedef enum {
 typedef enum { InstructionOperandSize_Large = 0, InstructionOperandSize_Small = 1 } InstructionOperandSize;
 typedef enum { InstructionRepetition_Single = 0, InstructionRepetition_Double = 1 } InstructionRepetition;
 typedef enum { OperandTargetBits_HighNibble = 1, OperandTargetBits_LowNibble = 0 } OperandTargetBits;
-typedef enum { OperandAddressing_Instant = 0, OperandAddressing_Direct = 1, OperandAddressing_VaringIndexing = 2, OperandAddressing_DirectRegister = 3 } OperandAddressing;
+typedef enum { OperandAddressing_Instant = 0, 
+        OperandAddressing_Direct = 1, 
+        OperandAddressing_VaringIndexing = 2, 
+        OperandAddressing_DirectRegister = 3 } OperandAddressing;
 
 /* The memory representation of an opcode in the target machine */
 typedef struct tOpcodeLayout {
@@ -58,10 +61,26 @@ typedef struct tOpcodeLayout {
     unsigned int reserved : 2;
 } OpcodeLayout, *OpcodeLayoutPtr;
 
+typedef union uSimpleAddress {
+    char *label;
+    int value;
+    /* this can be represented as a 3 bit field but it will be easier to debug this way. */
+    char reg[REGISTER_NAME_LENGTH + 1];
+} SimpleAddress;
+
+typedef union uTypedAddress {
+    char *label;
+    int value;
+    SimpleAddress mixedAddress;
+    char reg[REGISTER_NAME_LENGTH + 1];
+} TypedAddress;
+
 typedef struct tInstructionLayout {
     OpcodeLayout opcode; /* this might be illegal :-) */ 
-    unsigned int word1 : MACHINE_WORD_LENGTH;
-    unsigned int word2 : MACHINE_WORD_LENGTH;
+    OperandAddressing leftOperandAddressing;
+    TypedAddress leftOperand;
+    OperandAddressing rightOperandAddressing;
+    TypedAddress rightOperand;
 } InstructionLayout, *InstructionLayoutPtr;
 
 typedef enum {Empty, Comment, Guide, Operation} StatentType;

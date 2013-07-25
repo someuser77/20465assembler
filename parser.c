@@ -220,7 +220,7 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
 
     if (length == REGISTER_NAME_LENGTH)
     {
-        if (label[0] == REGISTER_PREFIX && ((label[1] - '0') >= MIN_REGISTER_ID && (label[1] - '0') <= MAX_REGISTER_ID))
+        if (label[0] == REGISTER_PREFIX && IS_VALID_REGISTER_ID(label[1] - '0'))
         {
             logParsingError("Label must not be a valid register name", sourceLine);
             valid = False;

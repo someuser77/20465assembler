@@ -200,9 +200,9 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
 void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
     Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
-    instructionRepresentation->opcode = Opcode_mov;
+    instructionRepresentation->opcode.opcode = Opcode_mov;
     
-    if (!readInstructionOperandSize(sourceLine, instructionRepresentation->opcode))
+    if (!readInstructionOperandSize(sourceLine, &instructionRepresentation->opcode))
     {
         return;
     }
@@ -210,7 +210,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
     /* if the operand size is small (10 bits instead of 20) we need to set 
      the comb bits to tell how to address each operand */
     
-    if (!setComb(sourceLine, instructionRepresentation->opcode))
+    if (!setComb(sourceLine, &instructionRepresentation->opcode))
     {
         return;
     }
@@ -221,7 +221,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
         return;
     }
     
-    if (!readInstructionRepetition(sourceLine, instructionRepresentation->opcode))
+    if (!readInstructionRepetition(sourceLine, &instructionRepresentation->opcode))
     {
         return;
     }
@@ -237,7 +237,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
     
 }
 
-Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
+Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
     char *operandStart;
     char *operandEnd;
@@ -245,6 +245,7 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
     char *buffer;
     int length;
     int directAddressValue;
+    int registerId;
     
     skipWhitespace(sourceLine);
     
@@ -274,23 +275,80 @@ Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing valid
             buffer[length] = EOL;
             
             directAddressValue = strtol(buffer, &endptr, 10);
+            
             if (errno == ERANGE)
             {
                 setSourceLineError(sourceLine, "Value out of range when reading direct address value.");
+                free(buffer);
                 return False;
             }
             
             if ((directAddressValue == 0 && endptr == buffer) || *endptr == EOL)
             {
                 setSourceLineError(sourceLine, "Unable to convert direct address to number.");
+                free(buffer);
                 return False;
             }
+            
+            instruction->leftOperandAddressing =  OperandAddressing_Direct;
+            instruction->leftOperand.value = directAddressValue;
+            free(buffer);
+            return True;
         }
     }
+    
+    if ((validAddressing & ValidOperandAddressing_DirectRegister) == ValidOperandAddressing_DirectRegister)
+    {
+        if ((*sourceLine->text) == REGISTER_PREFIX)
+        {
+            operandStart++;
+            length = operandEnd - operandStart;
+            
+            buffer = (char *)malloc(sizeof(char) * (length + 1));
+    
+            strncpy(buffer, operandStart, length);
+            buffer[length] = EOL;
+            
+            registerId = strtol(buffer, &endptr, 10);
+            if (errno == ERANGE)
+            {
+                setSourceLineError(sourceLine, "Value out of range when reading register id value.");
+                free(buffer);
+                return False;
+            }
+            
+            if ((registerId == 0 && endptr == buffer) || *endptr == EOL)
+            {
+                setSourceLineError(sourceLine, "Unable to convert register id to number.");
+                free(buffer);
+                return False;
+            }
+            
+            if (!IS_VALID_REGISTER_ID(registerId))
+            {
+                setSourceLineError(sourceLine, "Register ID is not in the valid range of %d and %d", MIN_REGISTER_ID, MAX_REGISTER_ID);
+                free(buffer);
+                return False;
+            }
+            
+            instruction->leftOperandAddressing =  OperandAddressing_Direct;
+            instruction->leftOperand.reg[0] = REGISTER_PREFIX;
+            instruction->leftOperand.reg[1] = registerId + '0';
+            instruction->leftOperand.reg[2] = '\0';
+            free(buffer);
+            return True;
+        }
+    }
+    
     
     sourceLine->text = operandEnd + 1;
     
     return True;
+}
+
+void readDirectAddressingOperand()
+{
+    
 }
 
 Boolean readDestinationOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing)
