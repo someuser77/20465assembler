@@ -192,6 +192,18 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
     sourceLine->error = cloneString(buffer, strlen(buffer));
 }
 
+/* returns a pointer to the first OPERAND_SEPERATOR or EOL. 
+ * never NULL because EOL is always present.*/
+char *getOperandBoundry(SourceLinePtr sourceLine)
+{
+    char *start = sourceLine->text;
+    char *end = strchr(start, OPERAND_SEPERATOR);
+    if (end == NULL)
+    {
+        end = strchr(start, EOL);
+    }
+    return end - 1;
+}
 
 void readInstantAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
@@ -260,44 +272,39 @@ void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 
 void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
-    char *start, *end, *openingBracket, *closingBracket;
+    char *start, *end, *opening, *closing;
     char *label;
     int length;
+    int registerId;
+    int offset;
+    char *offsetStr;
     
     start = sourceLine->text;
-    end = strchr(start, OPERAND_SEPERATOR);
+    end = getOperandBoundry(sourceLine);
 
-    if (end == NULL)
-    {
-        end = strchr(start, EOL);
-        end -= 1; /* EOL */
-    } 
-    else 
-    {
-        end -= OPERAND_SEPERATOR_LENGTH;
-    }
-    
-
-    openingBracket = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
-    if (openingBracket == NULL)
+    opening = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
+    if (opening == NULL)
     {
         setSourceLineError(sourceLine, "Missing '%c' token from varying address operand.", VARYING_INDEXING_OPENING_TOKEN);
         return;
     }
     
-    closingBracket = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
-    if (closingBracket == NULL)
+    closing = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
+    
+    if (closing == NULL)
     {
         setSourceLineError(sourceLine, "Missing '%c' token from varying address operand.", VARYING_INDEXING_CLOSING_TOKEN);
         return;
     }
     
-    label = cloneString(start, openingBracket - start);
+    label = cloneString(start, opening - start);
     
-    if (*(openingBracket + VARYING_INDEXING_OPENING_TOKEN_LENGTH) == VARYING_INDEXING_LABEL_TOKEN)
+    start = opening + VARYING_INDEXING_OPENING_TOKEN_LENGTH;
+    
+    if (*start == VARYING_INDEXING_LABEL_TOKEN)
     {
-        start = openingBracket + VARYING_INDEXING_OPENING_TOKEN_LENGTH + VARYING_INDEXING_LABEL_TOKEN_LENGTH;
-        if (!isValidLabel(sourceLine, start, closingBracket - 1))
+        start +=  VARYING_INDEXING_LABEL_TOKEN_LENGTH;
+        if (!isValidLabel(sourceLine, start, closing - 1))
         {
             setSourceLineError(sourceLine, "Invalid label name for labeled varying indexing.");
             return;
@@ -305,22 +312,48 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
         
         length = end - start;
         
-        operand->addressing = OperandAddressing_VaryingIndexing;
-        operand->address.varyingAddress.label = label;
         operand->address.varyingAddress.adressing = OperandVaryingAddressing_Direct;
         operand->address.varyingAddress.address.label = cloneString(start, length);
+        goto postProcess;
+    }
+    
+    if (*start == REGISTER_NAME_PREFIX)
+    {
+        start += REGISTER_NAME_PREFIX_LENGTH;
         
+        if (!tryReadNumber(sourceLine, &registerId) || !IS_VALID_REGISTER_ID(registerId))
+        {
+            setSourceLineError(sourceLine, "Invalid register id.");
+            return;
+        }
         
-        sourceLine->text = closingBracket + VARYING_INDEXING_CLOSING_TOKEN_LENGTH;
+        operand->address.varyingAddress.adressing = OperandVaryingAddressing_DirectRegister;
+        operand->address.varyingAddress.address.reg[0] = REGISTER_NAME_PREFIX;
+        operand->address.varyingAddress.address.reg[1] = registerId + '0';
+        operand->address.varyingAddress.address.reg[2] = EOL;
+        goto postProcess;
+    }
+    
+    sourceLine->text = start;
+    
+    if (!tryReadNumber(sourceLine, &offset))
+    {
+        offsetStr = cloneString(start, closing - start);
+        setSourceLineError(sourceLine, "Invalid offset value '%s' for varying index %s.", offsetStr, label);
+        free(offsetStr);
         return;
     }
     
-    length = end - start;
+    operand->address.varyingAddress.adressing = OperandVaryingAddressing_Instant;
+    operand->address.varyingAddress.address.value = offset;
     
-    operand->addressing =  OperandAddressing_Direct;
-    operand->address.label = (char *)malloc(sizeof(char) * (length + 1));
-    strncpy(operand->address.label, start, length);
-    operand->address.label[length] = EOL;
+    
+    
+postProcess:
+    operand->addressing = OperandAddressing_VaryingIndexing;
+    operand->address.label = label;
+    sourceLine->text = closing + VARYING_INDEXING_CLOSING_TOKEN_LENGTH;
+    
 }
 
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
@@ -379,19 +412,6 @@ Boolean addressingTypeIsAllowed(ValidOperandAddressing addressingMask, ValidOper
     return (addressingMask & addressingTypeToCheck) == addressingTypeToCheck;
 }
 
-/* returns a pointer to the first OPERAND_SEPERATOR or EOL. 
- * never NULL because EOL is always present.*/
-char *getOperandBoundry(SourceLinePtr sourceLine)
-{
-    char *start = sourceLine->text;
-    char *end = strchr(start, OPERAND_SEPERATOR);
-    if (end == NULL)
-    {
-        end = strchr(start, EOL);
-    }
-    return end - 1;
-}
-
 Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand)
 {
     char *start, *end, *openingBracket, *closingBracket;
@@ -437,7 +457,23 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
         {
             readVaryingAddressingOperand(sourceLine, operand);
 #ifdef DEBUG
-            printf("Found varying addressing operand %s with direct address %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.label);
+            
+            switch (operand->address.varyingAddress.adressing)
+            {
+                case OperandVaryingAddressing_Direct:
+                    printf("Found varying addressing operand %s with direct address %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.label);
+                    break;
+                case OperandVaryingAddressing_DirectRegister:
+                    printf("Found varying addressing operand %s with direct register %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.reg);
+                    break;
+                case OperandVaryingAddressing_Instant:
+                    printf("Found varying addressing operand %s with offset %d.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.value);
+                    break;
+                default:
+                    printf("Unknown OperandVaryingAddressing value!\n");
+            }
+            
+            
 #endif
             return True;
         }
