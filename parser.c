@@ -84,6 +84,9 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         if (isBlankLine(linePtr))
         {
             /* blank line */
+#ifdef DEBUG
+            printf("\n(Blank Line)\n");
+#endif
             continue;
         }
         
@@ -92,10 +95,14 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         if (isCommentLine(linePtr))
         {
             /* comment line */
+#ifdef DEBUG
+            printf("\n(Comment Line)\n");
+#endif
             continue;
         }
-
-        label = tryReadLabel(linePtr);
+        
+        /* if we'll use the regular tryReadtoken it will fail the label validity check because of the ':' */
+        label = tryReadLabelWithEndToken(linePtr, LABEL_TOKEN);
         if (label != NULL)
         {
 #ifdef DEBUG
@@ -182,32 +189,56 @@ void skipWhitespace(SourceLine *sourceLine)
     sourceLine->text = skipWhitespaceInString(sourceLine->text);
 }
 
+char *tryReadLabelWithEndToken(SourceLine *sourceLine, char token)
+{
+    char *label;
+    char *start = sourceLine->text;
+    char *end;
+    int length;
+    Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);
+    
+    end = strchr(start, token);
+    
+    if (end == NULL) return NULL;
+    
+    label = start;
+    
+    if (!isValidLabel(sourceLine, label, end)) return NULL;
+    
+    length = end - start;
+    
+    label = cloneString(start, length);
+    
+    sourceLine->text += length;
+    sourceLine->text += sizeof(token);
+    return label;
+}
+
 /* tries to reads a label off the source line.
  * if there is no label NULL is returned.
  * if label is not valid the cursor is not moved. */
 char *tryReadLabel(SourceLine *sourceLine)
 {
-    char *label;
-    char *line = sourceLine->text;
-    char *labelEnd = strchr(line, LABEL_TOKEN);
-    int length;
-    Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);
+    static char tokens[] = { OPERAND_SEPERATOR, EOL };
+    char *start = sourceLine->text, *end;
+    char *last;
+    int i;
     
-    if (labelEnd == NULL) return NULL;
+    for (i = 0; i < sizeof(tokens) / sizeof(char); i++)
+    {
+        end = strchr(start, tokens[i]);
+        if (end != NULL)
+        {
+            break;
+        }
+    }
     
-    label = line;
+    last = end;
+    while (last > start && isspace(*last)) last--;
     
-    if (!isValidLabel(sourceLine, label, labelEnd)) return NULL;
+    sourceLine->text = last;
     
-    length = labelEnd - line;
-    
-    label = (char *)malloc(sizeof(char) * (length + 1));
-    strncpy(label, sourceLine->text, length);
-    label[length] = EOL;
-    
-    sourceLine->text += length;
-    sourceLine->text += strlen(":");
-    return label;
+    return cloneString(start, last - start);
 }
 
 Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
@@ -396,4 +427,18 @@ Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
     sourceLine->text += length;
     free(buffer);
     return True;
+}
+
+char *cloneString(char *str, int length)
+{
+    char *result;
+    result = (char *)malloc(sizeof(char) * (length + 1));
+    if (result == NULL)
+    {
+        fprintf(stderr, "malloc error.");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(result, str, length);
+    result[length] = EOL;
+    return result;
 }

@@ -20,7 +20,7 @@ typedef enum {
 } ValidOperandAddressing;
 
 
-static const char *OPCODE_TO_NAME[NUMBER_OF_OPCODES] = { NULL };
+static char *OPCODE_TO_NAME[NUMBER_OF_OPCODES] = { NULL };
 static OpcodeHandler OPCODE_TO_HANDLER[NUMBER_OF_OPCODES] = { NULL };
 /*
     "mov", "cmp", "add", "sub", "not", "clr", "lea", "inc", 
@@ -57,6 +57,7 @@ void initHandlerMap()
 {
     void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillJmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     
     if (OPCODE_TO_HANDLER[0] != NULL) return;
     
@@ -69,7 +70,7 @@ void initHandlerMap()
     OPCODE_TO_HANDLER[Opcode_lea] =  fillLeaOpcode;
     OPCODE_TO_HANDLER[Opcode_inc] =  NULL;
     OPCODE_TO_HANDLER[Opcode_dec] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_jmp] =  NULL;
+    OPCODE_TO_HANDLER[Opcode_jmp] =  fillJmpOpcode;
     OPCODE_TO_HANDLER[Opcode_bne] =  NULL;
     OPCODE_TO_HANDLER[Opcode_red] =  NULL;
     OPCODE_TO_HANDLER[Opcode_prn] =  NULL;
@@ -123,8 +124,7 @@ char* getOpcodeName(Opcode opcode)
     
     initNameMap();
     length = strlen(OPCODE_TO_NAME[opcode]) + 1;
-    name = (char *)malloc(sizeof(char) * (length));
-    strncpy(name, OPCODE_TO_NAME[opcode], length);
+    name = cloneString(OPCODE_TO_NAME[opcode], length);
     return name;
 }
 
@@ -184,19 +184,12 @@ Boolean readInstructionRepetition(SourceLinePtr sourceLine, OpcodeLayoutPtr inst
 void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
 {
     char buffer[MESSAGE_BUFFER_LENGTH];
-    int length;
     va_list ap;
     va_start(ap, error);
     vsprintf(buffer, error, ap);
     va_end(ap);
-    length = strlen(buffer);
-    sourceLine->error = (char *)malloc(sizeof(char) * length + 1);
-    if (sourceLine->error == NULL)
-    {
-        fprintf(stderr, "malloc error.");
-        return;
-    }
-    strncpy(sourceLine->error, buffer, length + 1);
+    
+    sourceLine->error = cloneString(buffer, strlen(buffer));
 }
 
 
@@ -246,37 +239,24 @@ void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr op
 
 void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
-    char *start, *end;
-    int length;
+    char *getOperandBoundry(SourceLinePtr sourceLine);
+    char *start, *end, *label;
     
     start = sourceLine->text;
-    end = strchr(start, OPERAND_SEPERATOR);
-    if (end == NULL)
-    {
-        end = strchr(start, EOL);
-    }
+    end = getOperandBoundry(sourceLine);
     
     if (!isValidLabel(sourceLine, start, end))
     {
         setSourceLineError(sourceLine, "Invalid label '%s' for direct addressing operand.", start);
         return;
     }
-        
-    length = end - start;
+    
+    label = tryReadLabel(sourceLine);
+    
     operand->addressing =  OperandAddressing_Direct;
-    operand->address.label = (char *)malloc(sizeof(char) * (length + 1));
-    strncpy(operand->address.label, start, length);
-    operand->address.label[length] = EOL;
+    operand->address.label = label;
 }
 
-char *cloneString(char *str, int length)
-{
-    char *result;
-    result = (char *)malloc(sizeof(char) * length + 1);
-    strncpy(result, str, length);
-    result[length] = EOL;
-    return result;
-}
 
 void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
@@ -346,18 +326,9 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
     Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
-    char *operandEnd;
-    
+        
     skipWhitespace(sourceLine);
-    
-    operandEnd = strchr(sourceLine->text, OPERAND_SEPERATOR);
-    
-    if (operandEnd == NULL)
-    {
-        setSourceLineError(sourceLine, "Missing operand separator '%c'.", OPERAND_SEPERATOR);
-        return False;
-    }
-
+        
     if (!readOperand(sourceLine, validAddressing, &instruction->leftOperand))
     {
         return False;
@@ -400,9 +371,25 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine,
     return True;
 }
 
+/* tells if the current operand addrssing is on. */
+/* could be written with a macro but because we are dealing 
+ * with enums a functions looks more appropriate. */
 Boolean addressingTypeIsAllowed(ValidOperandAddressing addressingMask, ValidOperandAddressing addressingTypeToCheck)
 {
     return (addressingMask & addressingTypeToCheck) == addressingTypeToCheck;
+}
+
+/* returns a pointer to the first OPERAND_SEPERATOR or EOL. 
+ * never NULL because EOL is always present.*/
+char *getOperandBoundry(SourceLinePtr sourceLine)
+{
+    char *start = sourceLine->text;
+    char *end = strchr(start, OPERAND_SEPERATOR);
+    if (end == NULL)
+    {
+        end = strchr(start, EOL);
+    }
+    return end - 1;
 }
 
 Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand)
@@ -438,11 +425,8 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
     if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_VaryingIndexing))
     {
         start = sourceLine->text;
-        end = strchr(start, OPERAND_SEPERATOR);
-        if (end == NULL)
-        {
-            end = strchr(start, EOL);
-        }
+        end = getOperandBoundry(sourceLine);
+        
         openingBracket = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
         closingBracket = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
         
@@ -455,14 +439,25 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 #ifdef DEBUG
             printf("Found varying addressing operand %s with direct address %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.label);
 #endif
-            
             return True;
         }
-        
     }
     
+    if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_Direct))
+    {
+        start = sourceLine->text;
+        end = getOperandBoundry(sourceLine);
+        if (isValidLabel(sourceLine, start, end))
+        {
+            readDirectAddressingOperand(sourceLine, operand);
+#ifdef DEBUG
+            printf("Found direct addressing operand with the label %s.\n", operand->address.label);
+#endif
+            return True;
+        }
+    }
     
-    setSourceLineError(sourceLine, "Unknown operand addressing scheme.");
+    setSourceLineError(sourceLine, "Unknown operand addressing scheme.\n");
     return False;
 }
 
@@ -471,6 +466,9 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
     int sourceOperandTargetBits;
     int targetOperandTargetBits;
+ 
+    /* if the operand size is small (10 bits instead of 20) we need to set 
+     the comb bits to tell how to address each operand */
     
     if (instructionRepresentation->type == InstructionOperandSize_Large)
     {
@@ -534,32 +532,39 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     return True;
 }
 
-void fillSingleOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
+Boolean readInstructionModifiers(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
     Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr opcodeLayout);
     
     if (!readInstructionOperandSize(sourceLine, &instructionRepresentation->opcode))
     {
-        return;
+        return False;
     }
-    
-    /* if the operand size is small (10 bits instead of 20) we need to set 
-     the comb bits to tell how to address each operand */
     
     if (!setComb(sourceLine, &instructionRepresentation->opcode))
     {
-        return;
+        return False;
     }
     
     if (*sourceLine->text != OPCODE_TYPE_AND_DBL_SEPERATOR)
     {
         setSourceLineError(sourceLine, "Missing '%c' character between operand type and dbl.", OPCODE_TYPE_AND_DBL_SEPERATOR);
-        return;
+        return False;
     }
     
     sourceLine->text += OPCODE_TYPE_AND_DBL_SEPERATOR_LENGTH;
     
     if (!readInstructionRepetition(sourceLine, &instructionRepresentation->opcode))
+    {
+        return False;
+    }
+    
+    return True;
+}
+
+void readUnaryOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
+{
+    if (!readInstructionModifiers(sourceLine, instructionRepresentation))
     {
         return;
     }
@@ -572,16 +577,22 @@ void fillSingleOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr inst
         return;
     }
     
-    readSourceOperand(sourceLine, validAddressing, instructionRepresentation);
-    
+    readDestinationOperand(sourceLine, validAddressing, instructionRepresentation);
 }
 
-void fillDoubleOperandOpcode(SourceLinePtr sourceLine, 
+void readBinaryOperandOpcode(SourceLinePtr sourceLine, 
         InstructionLayoutPtr instructionRepresentation, 
         ValidOperandAddressing validSourceAddressing, 
         ValidOperandAddressing validDestinationAddressing)
 {
-    fillSingleOperandOpcode(sourceLine, instructionRepresentation, validSourceAddressing);
+    if (!readInstructionModifiers(sourceLine, instructionRepresentation))
+    {
+        return;
+    }
+    
+    skipWhitespace(sourceLine);
+    
+    readSourceOperand(sourceLine, validSourceAddressing, instructionRepresentation);
     
     if (sourceLine->error != NULL) return;
     
@@ -608,7 +619,7 @@ void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
             
     instructionRepresentation->opcode.opcode = Opcode_mov;
     
-    fillDoubleOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validDestinationAddressing);
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validDestinationAddressing);
 }
 
 void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
@@ -619,5 +630,16 @@ void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRep
     
     instructionRepresentation->opcode.opcode = Opcode_lea;
     
-    fillDoubleOperandOpcode(sourceLine, instructionRepresentation, validAddressing, validAddressing);
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, validAddressing, validAddressing);
+}
+
+void fillJmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_Direct | 
+            ValidOperandAddressing_DirectRegister |
+            ValidOperandAddressing_VaryingIndexing;
+    
+    instructionRepresentation->opcode.opcode = Opcode_jmp;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, validAddressing);
 }

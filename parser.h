@@ -24,5 +24,9 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType);
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName);
 Boolean tryReadNumber(SourceLinePtr sourceLine, int *value);
 Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);
+char *tryReadLabel(SourceLine *sourceLine);
+char *tryReadLabelWithEndToken(SourceLine *sourceLine, char token);
+char *cloneString(char *str, int length);
+
 #endif	/* PARSER_H */
 
