@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include "consts.h"
 #include "types.h"
 #include "opcodemap.h"
@@ -13,6 +14,9 @@ typedef enum {
             ValidOperandAddressing_Direct = 2, 
             ValidOperandAddressing_VaryingIndexing = 4, 
             ValidOperandAddressing_DirectRegister = 8,
+            ValidOperandAddressing_AllExceptInstant = ValidOperandAddressing_Direct | 
+                    ValidOperandAddressing_VaryingIndexing | 
+                    ValidOperandAddressing_DirectRegister,
             ValidOperandAddressing_All = ValidOperandAddressing_Instant | 
                     ValidOperandAddressing_Direct | 
                     ValidOperandAddressing_VaryingIndexing | 
@@ -56,27 +60,40 @@ void initNameMap()
 void initHandlerMap()
 {
     void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillCmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillAddOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillSubOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillNotOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillClrOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillIncOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillDecOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     void fillJmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillBneOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillRedOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillPrnOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillJsrOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillRtsOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
+    void fillStopOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation);
     
     if (OPCODE_TO_HANDLER[0] != NULL) return;
     
-    OPCODE_TO_HANDLER[Opcode_mov] = fillMovOpcode; 
-    OPCODE_TO_HANDLER[Opcode_cmp] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_add] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_sub] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_not] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_clr] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_lea] =  fillLeaOpcode;
-    OPCODE_TO_HANDLER[Opcode_inc] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_dec] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_jmp] =  fillJmpOpcode;
-    OPCODE_TO_HANDLER[Opcode_bne] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_red] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_prn] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_jsr] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_rts] =  NULL;
-    OPCODE_TO_HANDLER[Opcode_stop] = NULL;
+    OPCODE_TO_HANDLER[Opcode_mov]  = fillMovOpcode; 
+    OPCODE_TO_HANDLER[Opcode_cmp]  = fillCmpOpcode;
+    OPCODE_TO_HANDLER[Opcode_add]  = fillAddOpcode;
+    OPCODE_TO_HANDLER[Opcode_sub]  = fillSubOpcode;
+    OPCODE_TO_HANDLER[Opcode_not]  = fillNotOpcode;
+    OPCODE_TO_HANDLER[Opcode_clr]  = fillClrOpcode;
+    OPCODE_TO_HANDLER[Opcode_lea]  = fillLeaOpcode;
+    OPCODE_TO_HANDLER[Opcode_inc]  = fillIncOpcode;
+    OPCODE_TO_HANDLER[Opcode_dec]  = fillDecOpcode;
+    OPCODE_TO_HANDLER[Opcode_jmp]  = fillJmpOpcode;
+    OPCODE_TO_HANDLER[Opcode_bne]  = fillBneOpcode;
+    OPCODE_TO_HANDLER[Opcode_red]  = fillRedOpcode;
+    OPCODE_TO_HANDLER[Opcode_prn]  = fillPrnOpcode;
+    OPCODE_TO_HANDLER[Opcode_jsr]  = fillJsrOpcode;
+    OPCODE_TO_HANDLER[Opcode_rts]  = fillRtsOpcode;
+    OPCODE_TO_HANDLER[Opcode_stop] = fillStopOpcode;
 }
 
 Boolean isValidOpcodeName(char *instruction)
@@ -317,9 +334,10 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
         goto postProcess;
     }
     
-    if (*start == REGISTER_NAME_PREFIX)
+    if (*start == REGISTER_NAME_PREFIX && closing - start == REGISTER_NAME_LENGTH)
     {
         start += REGISTER_NAME_PREFIX_LENGTH;
+        sourceLine->text = start;
         
         if (!tryReadNumber(sourceLine, &registerId) || !IS_VALID_REGISTER_ID(registerId))
         {
@@ -404,12 +422,17 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine,
     return True;
 }
 
-/* tells if the current operand addrssing is on. */
+/* tells if the current operand addressing is on. */
 /* could be written with a macro but because we are dealing 
  * with enums a functions looks more appropriate. */
-Boolean addressingTypeIsAllowed(ValidOperandAddressing addressingMask, ValidOperandAddressing addressingTypeToCheck)
+Boolean addressingTypeIsAllowed(ValidOperandAddressing addressingMask, ValidOperandAddressing allowedAddressing)
 {
-    return (addressingMask & addressingTypeToCheck) == addressingTypeToCheck;
+    if (allowedAddressing == ValidOperandAddressing_None)
+    {
+        return addressingMask == ValidOperandAddressing_None;
+    }
+    
+    return (addressingMask & allowedAddressing) == allowedAddressing;
 }
 
 Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand)
@@ -417,6 +440,22 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
     char *start, *end, *openingBracket, *closingBracket;
     
     skipWhitespace(sourceLine);
+
+    if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_None))
+    {
+        if ((*sourceLine->text) == EOL)
+        {
+#ifdef DEBUG
+            printf("No operands.\n");
+#endif
+            return True;
+        }
+        else
+        {
+            setSourceLineError(sourceLine, "Opcode should have no operands.");
+            return False;
+        }
+    }
     
     if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_Instant))
     {
@@ -598,18 +637,61 @@ Boolean readInstructionModifiers(SourceLinePtr sourceLine, InstructionLayoutPtr 
     return True;
 }
 
-void readUnaryOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
+Boolean hasSpaceBetweenOpcodeAndOperands(SourceLinePtr sourceLine)
+{
+    return isspace(*sourceLine->text);
+}
+
+Boolean commonOpcodeParse(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
     if (!readInstructionModifiers(sourceLine, instructionRepresentation))
     {
-        return;
+        return False;
+    }
+    
+    /* opcodes with no operand will have a newline '\n' to pass the space check */
+    if (!hasSpaceBetweenOpcodeAndOperands(sourceLine))
+    {
+        setSourceLineError(sourceLine, "Missing space between opcode and operand.");
+        return False;
     }
     
     skipWhitespace(sourceLine);
     
+    return True;
+}
+
+void readNoOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
+    {
+        return;
+    }
+    
+    if (*sourceLine->text != EOL)
+    {
+        setSourceLineError(sourceLine, "This opcode should have no operands.");
+    }
+#ifdef DEBUG    
+    else
+    {
+        printf("Opcode with no operands.\n");
+    }
+#endif
+}
+
+
+void readUnaryOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
+{
+    
+    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
+    {
+        return;
+    }
+    
     if (*sourceLine->text == EOL)
     {
-        setSourceLineError(sourceLine, "Missing operands.");
+        setSourceLineError(sourceLine, "Missing operand.");
         return;
     }
     
@@ -621,12 +703,11 @@ void readBinaryOperandOpcode(SourceLinePtr sourceLine,
         ValidOperandAddressing validSourceAddressing, 
         ValidOperandAddressing validDestinationAddressing)
 {
-    if (!readInstructionModifiers(sourceLine, instructionRepresentation))
+    
+    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
     {
         return;
     }
-    
-    skipWhitespace(sourceLine);
     
     readSourceOperand(sourceLine, validSourceAddressing, instructionRepresentation);
     
@@ -649,33 +730,120 @@ void readBinaryOperandOpcode(SourceLinePtr sourceLine,
 
 void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
-    ValidOperandAddressing validDestinationAddressing = ValidOperandAddressing_Direct |
-            ValidOperandAddressing_DirectRegister |
-            ValidOperandAddressing_VaryingIndexing;
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_AllExceptInstant;
             
     instructionRepresentation->opcode.opcode = Opcode_mov;
     
-    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validDestinationAddressing);
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validAddressing);
+}
+
+void fillCmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_cmp;
+    
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, ValidOperandAddressing_All);
+}
+
+void fillAddOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_AllExceptInstant;
+            
+    instructionRepresentation->opcode.opcode = Opcode_add;
+    
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validAddressing);
+}
+
+void fillSubOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_AllExceptInstant;
+            
+    instructionRepresentation->opcode.opcode = Opcode_sub;
+    
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validAddressing);
+}
+
+void fillNotOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_not;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
+void fillClrOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_clr;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
 }
 
 void fillLeaOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
-    ValidOperandAddressing validAddressing = ValidOperandAddressing_Direct | 
-            ValidOperandAddressing_DirectRegister |
-            ValidOperandAddressing_VaryingIndexing;
+    ValidOperandAddressing validAddressing = ValidOperandAddressing_AllExceptInstant;
     
     instructionRepresentation->opcode.opcode = Opcode_lea;
     
     readBinaryOperandOpcode(sourceLine, instructionRepresentation, validAddressing, validAddressing);
 }
 
+void fillIncOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_inc;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
+void fillDecOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_dec;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
 void fillJmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
-    ValidOperandAddressing validAddressing = ValidOperandAddressing_Direct | 
-            ValidOperandAddressing_DirectRegister |
-            ValidOperandAddressing_VaryingIndexing;
-    
     instructionRepresentation->opcode.opcode = Opcode_jmp;
     
-    readUnaryOperandOpcode(sourceLine, instructionRepresentation, validAddressing);
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
+void fillBneOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_bne;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
+void fillRedOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_red;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_AllExceptInstant);
+}
+
+void fillPrnOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_prn;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All);
+}
+
+void fillJsrOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_jsr;
+    
+    readUnaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_Direct);
+}
+
+void fillRtsOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_rts;
+    
+    readNoOperandOpcode(sourceLine, instructionRepresentation);
+}
+
+void fillStopOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+{
+    instructionRepresentation->opcode.opcode = Opcode_stop;
+    
+    readNoOperandOpcode(sourceLine, instructionRepresentation);
 }
