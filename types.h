@@ -123,6 +123,15 @@ typedef struct tSourceLine
     char *error;
 } SourceLine, *SourceLinePtr;
 
+typedef struct {
+  int value : 20;  
+} Word;
+
+typedef struct tMemory
+{
+    Word buffer[MAX_MEMORY_SIZE];
+    int position;
+} Memory;
 
 #endif	/* TYPES_H */
 

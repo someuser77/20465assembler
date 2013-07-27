@@ -8,6 +8,8 @@
 #include "consts.h"
 #include "parser.h"
 #include "opcodemap.h"
+#include "logging.h"
+#include "datasection.h"
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
@@ -36,7 +38,7 @@ void freeSourceLine(SourceLine *line)
     /* calling free on NULL should be safe */
     free(line->error);
 }
-
+/*
 void logParsingErrorFormat(SourceLinePtr line, char *error, ...)
 {
     va_list ap;
@@ -54,7 +56,7 @@ void logParsingError(char *error, SourceLine *line)
 {
     logParsingErrorFormat(line, error);
 }
-
+*/
 void readDataGuidance(SourceLinePtr line)
 {
     
@@ -67,13 +69,15 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     int dataCounter = 0;
     int instructionCounter = 0;
     SourceLine line;
-    SourceLinePtr linePtr = &line;
+    SourceLinePtr sourceLine = &line;
     char *bufferPos;
     char *label;
     Boolean foundSymbol;
     GuidanceType guidanceType;
     Opcode opcode;
     InstructionLayoutPtr instructionLayout;
+    
+    DataSection dataSection;
     
     int lineNumber = 0;
     
@@ -86,7 +90,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
 #endif
         line = initSourceLine(bufferPos, lineNumber, sourceFileName);
         
-        if (isBlankLine(linePtr))
+        if (isBlankLine(sourceLine))
         {
             /* blank line */
 #ifdef DEBUG
@@ -95,9 +99,9 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             continue;
         }
         
-        skipWhitespace(linePtr);
+        skipWhitespace(sourceLine);
         
-        if (isCommentLine(linePtr))
+        if (isCommentLine(sourceLine))
         {
             /* comment line */
 #ifdef DEBUG
@@ -107,7 +111,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         }
         
         /* if we'll use the regular tryReadtoken it will fail the label validity check because of the ':' */
-        label = tryReadLabelWithEndToken(linePtr, LABEL_TOKEN);
+        label = tryReadLabelWithEndToken(sourceLine, LABEL_TOKEN);
         if (label != NULL)
         {
 #ifdef DEBUG
@@ -120,11 +124,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             foundSymbol = False;    
         }
         
-        skipWhitespace(linePtr);
+        skipWhitespace(sourceLine);
         
-        if (*linePtr->text == GUIDANCE_TOLEN)
+        if (*sourceLine->text == GUIDANCE_TOLEN)
         {            
-            if (tryGetGuidanceType(linePtr, &guidanceType))
+            if (tryGetGuidanceType(sourceLine, &guidanceType))
             {
                 switch (guidanceType)
                 {
@@ -136,7 +140,9 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                         {
                                 insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         }
-                        /* insert into memory */
+                        
+                        writeDataArray(&dataSection, sourceLine);
+                        
                         continue;
                     case GuidanceType_String:
 #ifdef DEBUG
@@ -175,31 +181,31 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
         }
         
-        if (!tryReadOpcode(linePtr, &opcode))
+        if (!tryReadOpcode(sourceLine, &opcode))
         {
-            logParsingErrorFormat(linePtr, "Unrecognized opcode.");
+            logParsingErrorFormat(sourceLine, "Unrecognized opcode.");
             continue;
         }
         
-        if (*linePtr->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
+        if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
         {
-            logParsingErrorFormat(linePtr, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
+            logParsingErrorFormat(sourceLine, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
             continue;
         }
         
-        linePtr->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
+        sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
         
-        instructionLayout = getInstructionLayout(linePtr, opcode);
+        instructionLayout = getInstructionLayout(sourceLine, opcode);
         
         if (instructionLayout == NULL)
         {
-            logParsingError("Unable to parse opcode.", linePtr);
+            logParsingError(sourceLine, "Unable to parse opcode.");
             continue;
         }
         
-        if (linePtr->error != NULL)
+        if (sourceLine->error != NULL)
         {
-            logParsingError("Error parsing line.", linePtr);
+            logParsingError(sourceLine, "Error parsing line.");
             continue;
         }
     }
@@ -276,11 +282,10 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     int length;
     int i;
     char *label = labelStart;
-    char msg[MESSAGE_BUFFER_LENGTH] = {0};
     
     if (!isalpha(*labelStart))
     {
-        logParsingError("Label must start with a letter: ", sourceLine);
+        logParsingError(sourceLine, "Label must start with a letter: ");
         valid = False;
     }
     
@@ -288,8 +293,7 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     
     if (length > MAX_LABEL_LENGTH)
     {
-        sprintf(msg, "Label must be %d chars or less", MAX_LABEL_LENGTH);
-        logParsingError(msg, sourceLine);
+        logParsingErrorFormat(sourceLine, "Label must be %d chars or less", MAX_LABEL_LENGTH);
         valid = False;
     }
     
@@ -297,7 +301,7 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     {
         if (!isalnum(label[i]))
         {
-            logParsingError("Label contains non alphanumeric characters", sourceLine);
+            logParsingError(sourceLine, "Label contains non alphanumeric characters");
             valid = False;
             break;
         }
@@ -307,14 +311,14 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     {
         if (label[0] == REGISTER_NAME_PREFIX && IS_VALID_REGISTER_ID(label[1] - '0'))
         {
-            logParsingError("Label must not be a valid register name", sourceLine);
+            logParsingError(sourceLine, "Label must not be a valid register name");
             valid = False;
         }
     }
     
     if (isValidOpcodeName(label))
     {
-        logParsingError("Label must not be a valid opcode name", sourceLine);
+        logParsingError(sourceLine, "Label must not be a valid opcode name");
         valid = False;
     }
     return valid;
@@ -340,19 +344,32 @@ Boolean isImaginaryGuidance(SourceLine *sourceLine)
 
 Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
 {
-    if (strncmp(sourceLine->text, DATA_GUIDANCE_TOKEN, DATA_GUIDANCE_TOKEN_LENGTH) == 0)
+    char *end;
+    char *guidance;
+    Boolean found = False;
+    
+    end = sourceLine->text;
+    while (!isspace(*end)) end++;
+    
+    guidance = cloneString(sourceLine->text, end - sourceLine->text);
+    
+    if (strcmp(guidance, DATA_GUIDANCE_TOKEN) == 0)
     {
         *guidanceType = GuidanceType_Data;
-        return True;
+        found = True;
+        goto end;
     }
     
-    if (strncmp(sourceLine->text, STRING_GUIDANCE_TOKEN, STRING_GUIDANCE_TOKEN_LENGTH) == 0)
+    if (strcmp(guidance, STRING_GUIDANCE_TOKEN) == 0)
     {
         *guidanceType = GuidanceType_String;
-        return True;
+        found = True;
+        goto end;
     }
     
-    return False;
+end:
+    free(guidance);
+    return found;
 }
 
 
@@ -417,7 +434,7 @@ Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
     
     numberEnd = numberStart;
     
-    if (*numberEnd == '-') numberEnd++;
+    if (*numberEnd == '-' || *numberEnd == '+') numberEnd++;
     
     while (isdigit(*numberEnd)) numberEnd++;
     
@@ -428,12 +445,7 @@ Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
     }
     
     length = numberEnd - numberStart;
-            
-    buffer = (char *)malloc(sizeof(char) * (length + 1));
-    
-    strncpy(buffer, numberStart, length);
-    
-    buffer[length] = EOL;
+    buffer = cloneString(numberStart, length);
     
     errno = 0;
     

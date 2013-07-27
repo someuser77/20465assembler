@@ -35,7 +35,11 @@
 #define INSTANT_ADDRESSING_OPERAND_PREFIX_LENGTH 1
 
 #define DATA_GUIDANCE_TOKEN ".data"
-#define DATA_GUIDANCE_TOKEN_LENGTH strlen(DATA_GUIDANCE_TOKEN)
+#define DATA_GUIDANCE_TOKEN_LENGTH 5
+
+#define DATA_GUIDANCE_SEPARATOR ','
+#define DATA_GUIDANCE_SEPARATOR_LENGTH 1
+
 #define STRING_GUIDANCE_TOKEN ".string"
 #define STRING_GUIDANCE_TOKEN_LENGTH strlen(STRING_GUIDANCE_TOKEN)
 #define ENTRY_GUIDANCE_TOKEN ".emtry"
@@ -52,8 +56,10 @@
 
 #define EOL '\0'
 
+#define MAX_MEMORY_SIZE 2000
+
 /* turns on debug output */
-#define DEBUG
+/* #define DEBUG */
 
 #endif	/* CONSTS_H */
 
