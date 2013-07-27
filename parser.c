@@ -55,6 +55,11 @@ void logParsingError(char *error, SourceLine *line)
     logParsingErrorFormat(line, error);
 }
 
+void readDataGuidance(SourceLinePtr line)
+{
+    
+}
+
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
 {
     char *tryReadLabel(SourceLine *sourceLine);
@@ -123,21 +128,45 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             {
                 switch (guidanceType)
                 {
-                    case GuidanceType_Data:  
-                        insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                    case GuidanceType_Data:
+#ifdef DEBUG
+                        printf("Found Data.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                        }
                         /* insert into memory */
                         continue;
                     case GuidanceType_String:
-                        insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+#ifdef DEBUG
+                        printf("Found String.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                        }
                         /* insert into memory */
                         continue;
                     case GuidanceType_Entry:
-                        insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+#ifdef DEBUG
+                        printf("Found Entry.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+                        }
                         continue;
                     case GuidanceType_Extern:
-                        insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
+#ifdef DEBUG
+                        printf("Found Extern.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
+                        }
                         continue;
-                }                
+                }
             }
         }
         
@@ -148,13 +177,13 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         
         if (!tryReadOpcode(linePtr, &opcode))
         {
-            logParsingError("Unrecognized opcode.", linePtr);
+            logParsingErrorFormat(linePtr, "Unrecognized opcode.");
             continue;
         }
         
-        if (*linePtr->text != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+        if (*linePtr->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
         {
-            logParsingErrorFormat(linePtr, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPERATOR);
+            logParsingErrorFormat(linePtr, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
             continue;
         }
         

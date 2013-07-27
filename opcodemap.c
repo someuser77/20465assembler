@@ -113,23 +113,51 @@ Boolean isValidOpcodeName(char *instruction)
     return False;
 }
 
+void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
+{
+    char buffer[MESSAGE_BUFFER_LENGTH];
+    va_list ap;
+    va_start(ap, error);
+    vsprintf(buffer, error, ap);
+    va_end(ap);
+    
+    sourceLine->error = cloneString(buffer, strlen(buffer));
+}
+
 Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode)
 {
     int i;
+    char *separator;
+    char *name;
+    Boolean found = False;
     
     initNameMap();
     
+    separator = strchr(sourceLine->text, OPCODE_CONTROL_PARAMETER_SEPARATOR);
+    if (separator == NULL)
+    {
+        setSourceLineError(sourceLine, "Missing opcode and opcode parameter separator '%c'.", OPCODE_CONTROL_PARAMETER_SEPARATOR);
+        return False;
+    }
+    
+    /* the opcode parameter separator is assumed to come right after the '/' */
+    
+    name = cloneString(sourceLine->text, separator - sourceLine->text);
+    
     for (i = 0; i < sizeof(OPCODE_TO_NAME) / sizeof(char *); i++)
     {
-        if (strncmp(sourceLine->text, OPCODE_TO_NAME[i], strlen(OPCODE_TO_NAME[i])) == 0)
+        if (strcmp(name, OPCODE_TO_NAME[i]) == 0)
         {
             *opcode = i;
-            sourceLine->text += strlen(OPCODE_TO_NAME[i]);
-            return True;
+            sourceLine->text = separator;
+            found = True;
+            break;
         }        
     }
     
-    return False;
+    free(name);
+    
+    return found;
 }
 
 char* getOpcodeName(Opcode opcode)
@@ -196,17 +224,6 @@ Boolean readInstructionRepetition(SourceLinePtr sourceLine, OpcodeLayoutPtr inst
     }
     sourceLine->text++;
     return True;
-}
-
-void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
-{
-    char buffer[MESSAGE_BUFFER_LENGTH];
-    va_list ap;
-    va_start(ap, error);
-    vsprintf(buffer, error, ap);
-    va_end(ap);
-    
-    sourceLine->error = cloneString(buffer, strlen(buffer));
 }
 
 /* returns a pointer to the first OPERAND_SEPERATOR or EOL. 
@@ -553,7 +570,7 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
         return True;
     }
     
-    if ((*sourceLine->text) == OPCODE_CONTROL_PARAMETER_SEPERATOR)
+    if ((*sourceLine->text) == OPCODE_CONTROL_PARAMETER_SEPARATOR)
     {
         sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
     }
@@ -578,9 +595,9 @@ Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentat
     /* skip the value */
     sourceLine->text++;
     
-    if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPERATOR)
+    if ((*sourceLine->text) != OPCODE_CONTROL_PARAMETER_SEPARATOR)
     {
-        setSourceLineError(sourceLine, "'%c' required between the operand bit sizes to use.", OPCODE_CONTROL_PARAMETER_SEPERATOR);
+        setSourceLineError(sourceLine, "'%c' required between the operand bit sizes to use.", OPCODE_CONTROL_PARAMETER_SEPARATOR);
         return False;
     }
     
