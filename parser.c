@@ -79,6 +79,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     
     DataSection dataSection;
     
+    
     int lineNumber = 0;
     
     while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
@@ -141,7 +142,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                                 insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         }
                         
-                        writeDataArray(&dataSection, sourceLine);
+                        if (writeDataArray(&dataSection, sourceLine) == DATA_WRITE_ERROR)
+                        {
+                            logError("Unable to write data array to memory.");
+                            return False;
+                        }
                         
                         continue;
                     case GuidanceType_String:
@@ -152,7 +157,12 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                         {
                                 insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         }
-                        /* insert into memory */
+                        
+                        if (writeDataString(&dataSection, sourceLine) == DATA_WRITE_ERROR)
+                        {
+                            logError("Unable to write string to memory.");
+                            return False;
+                        }
                         continue;
                     case GuidanceType_Entry:
 #ifdef DEBUG

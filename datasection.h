@@ -9,6 +9,7 @@
 #define	DATA_H
 
 #include "types.h"
+#include "memory.h"
 
 typedef struct 
 {

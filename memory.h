@@ -12,7 +12,16 @@
 #include "types.h"
 
 
+#define MEMORY_OUT_OF_MEMORY -1
 
+typedef struct tMemory
+{
+    Word buffer[MAX_MEMORY_SIZE];
+    int position;
+} Memory;
+
+int writeInt(Memory *memory, int value);
+int writeWord(Memory *memory, Word value);
 
 #endif	/* MEMORY_H */
 
