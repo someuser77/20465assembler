@@ -11,15 +11,21 @@ SymbolTable initSymbolTable()
     return table;
 }
 
-void insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int value)
+SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int value)
 {
     SymbolTableEntryPtr entry;
     
+    if (findSymbol(table, symbol) != NULL)
+    {
+        return NULL;
+    }
+    
     entry = (SymbolTableEntryPtr)malloc(sizeof(SymbolTableEntry));
     entry->next = NULL;
-    entry->value = value;
+    entry->symbol.value = value;
+    entry->symbol.symbolType = symbolType;
     
-    strcpy(entry->symbolName, symbol);
+    strcpy(entry->symbol.symbolName, symbol);
     
     if (table->root == NULL)
     {
@@ -31,22 +37,33 @@ void insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int
         table->last->next = entry;
         table->last = entry;
     }
+    
+    return &entry->symbol;
 }
 
-SymbolTableEntryPtr findSymbol(SymbolTablePtr table, char *symbol)
+SymbolPtr findSymbol(SymbolTablePtr table, char *symbol)
 {
     SymbolTableEntryPtr entry = table->root;
     while (entry != NULL)
     {
-        if (strcmp(entry->symbolName, symbol) == 0) return entry;
+        if (strcmp(entry->symbol.symbolName, symbol) == 0)
+        {
+            return &entry->symbol;
+        }
+        
         entry = entry->next;
     }
     return NULL;
 }
 
+
+void freeSymbolTableEntry(SymbolTableEntryPtr tableEntry)
+{
+    free(tableEntry);
+}
+
 void freeSymbolTable(SymbolTablePtr table)
 {
-    void freeSymbolTableEntry(SymbolTableEntryPtr);
     SymbolTableEntryPtr entry = table->root;
     SymbolTableEntryPtr next = entry;
     
@@ -56,9 +73,4 @@ void freeSymbolTable(SymbolTablePtr table)
         freeSymbolTableEntry(entry);
         entry = next;
     }
-}
-
-void freeSymbolTableEntry(SymbolTableEntryPtr tableEntry)
-{
-    free(tableEntry);
 }
