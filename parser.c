@@ -178,7 +178,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
 #endif
                         if (label != NULL)
                         {
-                                insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                {
+                                    logErrorFormat("Found duplicate label: %s", label);
+                                    return False;
+                                }
                         }
                         
                         if ((dataCounter = writeDataArray(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
@@ -194,7 +198,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
 #endif
                         if (label != NULL)
                         {
-                                insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
+                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                {
+                                    logErrorFormat("Found duplicate label: %s", label);
+                                    return False;
+                                }
                         }
                         
                         if ((dataCounter = writeDataString(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
@@ -238,7 +246,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
         
         if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
         {
-            logParsingErrorFormat(sourceLine, "Missing seperator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
+            logParsingErrorFormat(sourceLine, "Missing separator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
             continue;
         }
         
@@ -406,6 +414,7 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
     Boolean found = False;
     
     end = sourceLine->text;
+    
     while (!isspace(*end)) end++;
     
     guidance = cloneString(sourceLine->text, end - sourceLine->text);
@@ -420,6 +429,20 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
     if (strcmp(guidance, STRING_GUIDANCE_TOKEN) == 0)
     {
         *guidanceType = GuidanceType_String;
+        found = True;
+        goto end;
+    }
+    
+    if (strcmp(guidance, EXTERN_GUIDANCE_TOKEN) == 0)
+    {
+        *guidanceType = GuidanceType_Extern;
+        found = True;
+        goto end;
+    }
+    
+    if (strcmp(guidance, ENTRY_GUIDANCE_TOKEN) == 0)
+    {
+        *guidanceType = GuidanceType_Extern;
         found = True;
         goto end;
     }
