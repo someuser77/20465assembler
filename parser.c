@@ -38,28 +38,67 @@ void freeSourceLine(SourceLine *line)
     /* calling free on NULL should be safe */
     free(line->error);
 }
-/*
-void logParsingErrorFormat(SourceLinePtr line, char *error, ...)
+
+int getNumberOfWordsNeededForVaryingIndexing(VaryingAddress varyingAddress)
 {
-    va_list ap;
-    fprintf(stderr, "Error parsing file '%s' line %d pos %d: ", line->fileName, line->lineNumber, (int)(line->text - line->start + 1));
-    va_start(ap, error);
-    vfprintf(stderr, error, ap);
-    va_end(ap);
-    if (line->error != NULL)
+    int size = 1; /* for varying index label */
+    
+    switch (varyingAddress.adressing)
     {
-        fprintf(stderr, "%s\n", line->error);
+        case OperandVaryingAddressing_Direct:
+            size++;
+            break;
+        case OperandVaryingAddressing_Instant:
+            size++;
+            break;
+        case OperandVaryingAddressing_DirectRegister:
+            /* not necessary but makes it more clear */
+            size += 0;
+            break;
     }
+    
+    return size;
 }
 
-void logParsingError(char *error, SourceLine *line)
+int getNumberOfWordsNeededForOperand(OperandPtr operand)
 {
-    logParsingErrorFormat(line, error);
-}
-*/
-void readDataGuidance(SourceLinePtr line)
-{
+    int size = 0;
     
+    if (operand->empty == False)
+    {
+        switch (operand->addressing)
+        {
+            case OperandAddressing_Direct:
+                size++;
+                break;
+            case OperandAddressing_Instant:
+                size++;
+                break;
+            case OperandAddressing_VaryingIndexing:
+                size += getNumberOfWordsNeededForVaryingIndexing(operand->address.varyingAddress);
+                break;
+            case OperandAddressing_DirectRegister:
+                /* not necessary but makes it more clear */
+                size += 0;
+                break;
+        }
+    }
+    
+    return size;
+}
+
+int getInstructionSizeInWords(InstructionLayoutPtr instruction)
+{
+    int size = 0;
+    int sizeOfOpcode = 1;
+    
+    size += sizeOfOpcode;
+    
+    size += getNumberOfWordsNeededForOperand(&instruction->leftOperand);
+    
+    size += getNumberOfWordsNeededForOperand(&instruction->rightOperand);
+    
+    return size;
 }
 
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
@@ -78,7 +117,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     InstructionLayoutPtr instructionLayout;
     
     DataSection dataSection;
-    
+    int instructionSize;
     
     int lineNumber = 0;
     
@@ -142,7 +181,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                                 insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         }
                         
-                        if (writeDataArray(&dataSection, sourceLine) == DATA_WRITE_ERROR)
+                        if ((dataCounter = writeDataArray(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write data array to memory.");
                             return False;
@@ -158,7 +197,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                                 insertSymbol(symbolTable, label, SymbolType_Data, dataCounter);
                         }
                         
-                        if (writeDataString(&dataSection, sourceLine) == DATA_WRITE_ERROR)
+                        if ((dataCounter = writeDataString(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write string to memory.");
                             return False;
@@ -212,6 +251,14 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
             logParsingError(sourceLine, "Unable to parse opcode.");
             continue;
         }
+        
+        instructionSize = getInstructionSizeInWords(instructionLayout);
+        
+#ifdef DEBUG
+        printf("Instruction size in words: %d\n", instructionSize);
+#endif
+        
+        instructionCounter += instructionSize;
         
         if (sourceLine->error != NULL)
         {
@@ -382,6 +429,19 @@ end:
     return found;
 }
 
+InstructionLayoutPtr initInstructionLayout()
+{
+    InstructionLayoutPtr result = (InstructionLayoutPtr)malloc(sizeof(InstructionLayout));
+    if (result == NULL)
+    {
+        logError("malloc error.");
+        return NULL;
+    }
+    memset(result, 0, sizeof(InstructionRepetition));
+    result->leftOperand.empty = True;
+    result->rightOperand.empty = True;
+    return result;
+}
 
 InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcode)
 {
@@ -391,7 +451,7 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
     char *opcodeNamePtr;
     char opcodeName[OPCODE_NAME_LENGTH + 1] = {0};
     int opcodeLength;
-    InstructionLayoutPtr result;
+    InstructionLayoutPtr instruction;
     OpcodeHandler handler;
     
     opcodeNamePtr = getOpcodeName(opcode);
@@ -406,9 +466,9 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
         sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
     }
     
-    result = (InstructionLayoutPtr)malloc(sizeof(InstructionLayout));
-    memset(result, 0, sizeof(InstructionRepetition));
+    instruction = initInstructionLayout();
     
+    if (instruction == NULL) return NULL;
     
     /* the parameters of the command (type, operand size, dbl) are assumed to be 
        consecutive without spaces between them as seen on the course forum */
@@ -421,9 +481,21 @@ InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcod
         return NULL;
     }
     
-    (*handler)(sourceLine, result);
+    (*handler)(sourceLine, instruction);
+
     
-    return result;
+    if (instruction->leftOperand.empty == False)
+    {
+        instruction->opcode.source_addressing = instruction->leftOperand.addressing;
+        
+    }
+    
+    if (instruction->rightOperand.empty == False)
+    {
+        instruction->opcode.dest_addressing = instruction->rightOperand.addressing;
+    }
+    
+    return instruction;
 }
 
 Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)

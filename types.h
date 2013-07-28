@@ -89,6 +89,8 @@ typedef struct tOperand
 {
     OperandAddressing addressing;
     TypedAddress address;
+    /* can be replaced by making InstructionLayout hold a pointer to Operand */
+    Boolean empty;
 } Operand, *OperandPtr;
 
 typedef struct tInstructionLayout {

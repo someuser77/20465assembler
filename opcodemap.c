@@ -255,6 +255,7 @@ void readInstantAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
     
     operand->addressing =  OperandAddressing_Instant;
     operand->address.value = value;
+    operand->empty = False;
 }
 
 void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
@@ -281,6 +282,7 @@ void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr op
     operand->address.reg[0] = REGISTER_NAME_PREFIX;
     operand->address.reg[1] = registerId + '0';
     operand->address.reg[2] = EOL;
+    operand->empty = False;
 }
 
 void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
@@ -301,6 +303,7 @@ void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
     
     operand->addressing =  OperandAddressing_Direct;
     operand->address.label = label;
+    operand->empty = False;
 }
 
 
@@ -387,6 +390,7 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 postProcess:
     operand->addressing = OperandAddressing_VaryingIndexing;
     operand->address.label = label;
+    operand->empty = False;
     sourceLine->text = closing + VARYING_INDEXING_CLOSING_TOKEN_LENGTH;
     
 }
@@ -394,7 +398,6 @@ postProcess:
 Boolean readSourceOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, InstructionLayoutPtr instruction)
 {
     Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
-        
     skipWhitespace(sourceLine);
         
     if (!readOperand(sourceLine, validAddressing, &instruction->leftOperand))
@@ -747,11 +750,9 @@ void readBinaryOperandOpcode(SourceLinePtr sourceLine,
 
 void fillMovOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
-    ValidOperandAddressing validAddressing = ValidOperandAddressing_AllExceptInstant;
-            
     instructionRepresentation->opcode.opcode = Opcode_mov;
     
-    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, validAddressing);
+    readBinaryOperandOpcode(sourceLine, instructionRepresentation, ValidOperandAddressing_All, ValidOperandAddressing_AllExceptInstant);
 }
 
 void fillCmpOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
