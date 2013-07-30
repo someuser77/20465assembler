@@ -5,10 +5,11 @@
  * Created on July 12, 2013, 2:44 PM
  */
 
-#include "consts.h"
-#include "types.h"
 #ifndef SYMBOLTABLE_H
 #define	SYMBOLTABLE_H
+
+#include "consts.h"
+#include "types.h"
 
 #define EMPTY_SYMBOL_VALUE -1
 
@@ -19,6 +20,7 @@ typedef struct tSymbol
     char symbolName[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
     int value;
     SymbolType symbolType;
+    Boolean entry;
 } Symbol, *SymbolPtr;
 
 typedef struct tSymbolTableEntry{

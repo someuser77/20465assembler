@@ -24,6 +24,7 @@ SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType
     entry->next = NULL;
     entry->symbol.value = value;
     entry->symbol.symbolType = symbolType;
+    entry->symbol.entry = False;
     
     strcpy(entry->symbol.symbolName, symbol);
     

@@ -26,6 +26,8 @@ int main(int argc, char** argv) {
     
     
     SymbolTable symbolTable;
+    DataSection dataSection;
+    CodeSection codeSection;
     
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
@@ -37,7 +39,11 @@ int main(int argc, char** argv) {
     
     symbolTable = initSymbolTable();
     
-    firstPass(sourceFile, &symbolTable, sourceFileName);
+    firstPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName);
+  
+    rewind(sourceFile);
+    
+    secondPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName);
     
     if ((ferrorCode = ferror(sourceFile)))
     {

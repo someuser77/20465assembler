@@ -11,6 +11,8 @@
 #include "logging.h"
 #include "datasection.h"
 
+typedef enum {Pass_First, Pass_Second} Pass;
+
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName)
 {
     SourceLine line;
@@ -101,7 +103,48 @@ int getInstructionSizeInWords(InstructionLayoutPtr instruction)
     return size;
 }
 
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFileName)
+SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
+{
+    char *end;
+    char *label;
+    SymbolPtr symbol;
+
+    skipWhitespace(sourceLine);
+    
+    /* we assume this is really an extern otherwise we would not be called */
+    if (strncmp(sourceLine->text, EXTERN_GUIDANCE_TOKEN, EXTERN_GUIDANCE_TOKEN_LENGTH) == 0)
+    {
+        sourceLine->text += EXTERN_GUIDANCE_TOKEN_LENGTH;
+    }
+
+    skipWhitespace(sourceLine);
+    
+    end = sourceLine->text;
+    
+    while (!isspace(*end)) end++;
+    
+    label = cloneString(sourceLine->text, end - sourceLine->text);
+    
+    symbol = findSymbol(symbolTable, label);
+    
+    /* yes, could be written as if/else but this way its more clear */
+    if (symbol == NULL)
+    {
+        return NULL;
+    }
+    
+    symbol->entry = True;
+    
+    return symbol;
+    
+}
+
+Boolean pass(FILE *sourceFile, 
+        SymbolTablePtr symbolTable, 
+        DataSection *dataSection, 
+        CodeSection *codeSection, 
+        char *sourceFileName, 
+        Pass pass)
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
@@ -116,7 +159,6 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     Opcode opcode;
     InstructionLayoutPtr instructionLayout;
     
-    DataSection dataSection;
     int instructionSize;
     
     int lineNumber = 0;
@@ -173,6 +215,10 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                 switch (guidanceType)
                 {
                     case GuidanceType_Data:
+                        if (pass == Pass_Second)
+                        {
+                            continue;
+                        }
 #ifdef DEBUG
                         printf("Found Data.\n");
 #endif
@@ -185,7 +231,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                                 }
                         }
                         
-                        if ((dataCounter = writeDataArray(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter = writeDataArray(dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write data array to memory.");
                             return False;
@@ -193,6 +239,10 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                         
                         continue;
                     case GuidanceType_String:
+                        if (pass == Pass_Second)
+                        {
+                            continue;
+                        }
 #ifdef DEBUG
                         printf("Found String.\n");
 #endif
@@ -205,22 +255,34 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
                                 }
                         }
                         
-                        if ((dataCounter = writeDataString(&dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter = writeDataString(dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write string to memory.");
                             return False;
                         }
                         continue;
                     case GuidanceType_Entry:
+                        if (pass == Pass_First)
+                        {
+                            /* entries will be dealt with on the second pass*/
+                            continue;
+                        }
 #ifdef DEBUG
                         printf("Found Entry.\n");
 #endif
-                        if (label != NULL)
+                        if (handleEntry(sourceLine, symbolTable) == NULL)
                         {
-                                insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+                            logError("Unable to find the label for the entry.");
                         }
+                        
                         continue;
+                        
                     case GuidanceType_Extern:
+                        
+                        if (pass == Pass_Second)
+                        {
+                            continue;
+                        }
 #ifdef DEBUG
                         printf("Found Extern.\n");
 #endif
@@ -276,6 +338,16 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, char *sourceFile
     }
     
     return True;
+}
+
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+{
+    return pass(sourceFile, symbolTable, dataSection, codeSection, sourceFileName, Pass_First);
+}
+
+Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+{
+    return pass(sourceFile, symbolTable, dataSection, codeSection, sourceFileName, Pass_Second);
 }
 
 char *skipWhitespaceInString(char *str)

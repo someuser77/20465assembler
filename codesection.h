@@ -10,10 +10,10 @@
 
 #include "types.h"
 
-typedef struct tCode
+typedef struct 
 {
     Memory memory;    
-} Code;
+} CodeSection;
 
 #endif	/* CODE_H */
 
