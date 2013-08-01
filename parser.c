@@ -337,7 +337,6 @@ Boolean pass(FILE *sourceFile,
             
         }
         
-        
         instructionSize = getInstructionSizeInWords(instructionLayout);
         
 #ifdef DEBUG
@@ -358,12 +357,266 @@ Boolean pass(FILE *sourceFile,
 
 Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
 {
-    return pass(sourceFile, symbolTable, instructionQueue, dataSection, codeSection, sourceFileName, Pass_First);
+    char *tryReadLabel(SourceLine *sourceLine);
+    char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
+    int dataCounter = 0;
+    int instructionCounter = 0;
+    SourceLine line;
+    SourceLinePtr sourceLine = &line;
+    char *bufferPos;
+    char *label;
+    Boolean foundSymbol;
+    GuidanceType guidanceType;
+    Opcode opcode;
+    InstructionLayoutPtr instructionLayout;
+    
+    int instructionSize;
+    
+    int lineNumber = 0;
+    
+    while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
+    {
+        bufferPos = buffer;
+        lineNumber++;
+#ifdef DEBUG
+        printf("\n%d: %s\n", lineNumber, buffer);
+#endif
+        line = initSourceLine(bufferPos, lineNumber, sourceFileName);
+        
+        if (isBlankLine(sourceLine))
+        {
+            /* blank line */
+#ifdef DEBUG
+            printf("\n(Blank Line)\n");
+#endif
+            continue;
+        }
+        
+        skipWhitespace(sourceLine);
+        
+        if (isCommentLine(sourceLine))
+        {
+            /* comment line */
+#ifdef DEBUG
+            printf("\n(Comment Line)\n");
+#endif
+            continue;
+        }
+        
+        /* if we'll use the regular tryReadtoken it will fail the label validity check because of the ':' */
+        label = tryReadLabelWithEndToken(sourceLine, LABEL_TOKEN);
+        if (label != NULL)
+        {
+#ifdef DEBUG
+            printf("Label: %s\n", label);
+#endif
+            foundSymbol = True;
+        } 
+        else
+        {
+            foundSymbol = False;    
+        }
+        
+        skipWhitespace(sourceLine);
+        
+        if (*sourceLine->text == GUIDANCE_TOLEN)
+        {            
+            if (tryGetGuidanceType(sourceLine, &guidanceType))
+            {
+                switch (guidanceType)
+                {
+                    case GuidanceType_Data:
+#ifdef DEBUG
+                        printf("Found Data.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                {
+                                    logErrorFormat("Found duplicate label: %s", label);
+                                    return False;
+                                }
+                        }
+                        
+                        if ((dataCounter = writeDataArray(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        {
+                            logError("Unable to write data array to memory.");
+                            return False;
+                        }
+                        
+                        continue;
+                    case GuidanceType_String:
+#ifdef DEBUG
+                        printf("Found String.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                {
+                                    logErrorFormat("Found duplicate label: %s", label);
+                                    return False;
+                                }
+                        }
+                        
+                        if ((dataCounter = writeDataString(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        {
+                            logError("Unable to write string to memory.");
+                            return False;
+                        }
+                        continue;
+                    case GuidanceType_Entry:
+                        /* entries will be dealt with on the second pass*/
+                        continue;
+                        
+                    case GuidanceType_Extern:
+#ifdef DEBUG
+                        printf("Found Extern.\n");
+#endif
+                        if (label != NULL)
+                        {
+                                insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
+                        }
+                        continue;
+                }
+            }
+        }
+        
+        if (foundSymbol)
+        {
+            insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+        }
+        
+        if (!tryReadOpcode(sourceLine, &opcode))
+        {
+            logParsingErrorFormat(sourceLine, "Unrecognized opcode.");
+            continue;
+        }
+        
+        if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
+        {
+            logParsingErrorFormat(sourceLine, "Missing separator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
+            continue;
+        }
+        
+        sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
+        
+        
+        instructionLayout = getInstructionLayout(sourceLine, opcode);
+        
+        if (instructionLayout == NULL)
+        {
+            logParsingError(sourceLine, "Unable to parse opcode.");
+            continue;
+        }
+        
+        insertInstruction(instructionQueue, instructionLayout);
+        
+        instructionSize = getInstructionSizeInWords(instructionLayout);
+        
+#ifdef DEBUG
+        printf("Instruction size in words: %d\n", instructionSize);
+#endif
+        
+        instructionCounter += instructionSize;
+        
+        if (sourceLine->error != NULL)
+        {
+            logParsingError(sourceLine, "Error parsing line.");
+            continue;
+        }
+    }
+    
+    return True;
 }
 
 Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
 {
-    return pass(sourceFile, symbolTable, instructionQueue, dataSection, codeSection, sourceFileName, Pass_Second);
+    char *tryReadLabel(SourceLine *sourceLine);
+    char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
+    int instructionCounter = 0;
+    SourceLine line;
+    SourceLinePtr sourceLine = &line;
+    char *bufferPos;
+    GuidanceType guidanceType;
+    Opcode opcode;
+    InstructionLayoutPtr instructionLayout;
+    
+    int instructionSize;
+    
+    int lineNumber = 0;
+
+    printf("\n\n === SECOND PASS === \n\n");
+    
+    while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
+    {
+        bufferPos = buffer;
+        lineNumber++;
+#ifdef DEBUG
+        printf("\n%d: %s\n", lineNumber, buffer);
+#endif
+        line = initSourceLine(bufferPos, lineNumber, sourceFileName);
+        
+        if (isBlankLine(sourceLine))
+        {
+            continue;
+        }
+        
+        skipWhitespace(sourceLine);
+        
+        if (isCommentLine(sourceLine))
+        {
+            continue;
+        }
+        
+        tryReadLabelWithEndToken(sourceLine, LABEL_TOKEN);
+        
+        skipWhitespace(sourceLine);
+        
+        if (*sourceLine->text == GUIDANCE_TOLEN)
+        {            
+            if (tryGetGuidanceType(sourceLine, &guidanceType))
+            {
+                if (guidanceType == GuidanceType_Entry)
+                {
+#ifdef DEBUG
+                    printf("Found Entry.\n");
+#endif
+                    if (handleEntry(sourceLine, symbolTable) == NULL)
+                    {
+                        logError("Unable to find the label for the entry.");
+                    }
+                }
+            }
+            
+            continue;
+        }
+        
+        if (!tryReadOpcode(sourceLine, &opcode))
+        {
+            logParsingErrorFormat(sourceLine, "Unrecognized opcode.");
+            continue;
+        }
+        
+        instructionLayout = getNextInstruction(instructionQueue);
+            
+        printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
+        
+        instructionSize = getInstructionSizeInWords(instructionLayout);
+        
+#ifdef DEBUG
+        printf("Instruction size in words: %d\n", instructionSize);
+#endif
+        
+        instructionCounter += instructionSize;
+        
+        if (sourceLine->error != NULL)
+        {
+            logParsingError(sourceLine, "Error parsing line.");
+            continue;
+        }
+    }
+    
+    return True;
 }
 
 char *skipWhitespaceInString(char *str)
