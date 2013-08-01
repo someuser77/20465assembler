@@ -1,77 +1,67 @@
 #include <stdlib.h>
 #include <string.h>
 #include "symboltable.h"
+#include "list.h"
 
 SymbolTable initSymbolTable()
 {
     SymbolTable table;
-    table.count = 0;
-    table.root = NULL;
-    table.last = NULL;
+    table.list = initList(NodeType_Symbol);
     return table;
+}
+
+Boolean symbolNameComparer(ListNodeDataPtr a, ListNodeDataPtr b)
+{
+    return strcmp(a->symbol.symbolName, b->symbol.symbolName) == 0;
 }
 
 SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int value)
 {
-    SymbolTableEntryPtr entry;
+    ListNodeData dataToSearch;
+    ListNodeDataPtr dataToInsert;
+    ListNodePtr inserted;
+    Boolean symbolExists;
     
-    if (findSymbol(table, symbol) != NULL)
+    strncpy(dataToSearch.symbol.symbolName, symbol, MAX_LABEL_LENGTH);
+    
+    symbolExists = (findNode(&table->list, &dataToSearch, symbolNameComparer) != NULL);
+    
+    if (symbolExists)
     {
         return NULL;
     }
     
-    entry = (SymbolTableEntryPtr)malloc(sizeof(SymbolTableEntry));
-    entry->next = NULL;
-    entry->symbol.value = value;
-    entry->symbol.symbolType = symbolType;
-    entry->symbol.entry = False;
+    dataToInsert = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
     
-    strcpy(entry->symbol.symbolName, symbol);
+    dataToInsert->symbol.entry = False;
+    dataToInsert->symbol.symbolType = symbolType;
+    dataToInsert->symbol.value = value;
     
-    if (table->root == NULL)
-    {
-        table->root = entry;
-        table->last = entry;
-    }
-    else
-    {
-        table->last->next = entry;
-        table->last = entry;
-    }
+    strncpy(dataToInsert->symbol.symbolName, symbol, MAX_LABEL_LENGTH);
     
-    return &entry->symbol;
+    inserted = insertNode(&table->list, dataToInsert, NodeType_Symbol);
+    
+    return &inserted->data->symbol;
 }
 
 SymbolPtr findSymbol(SymbolTablePtr table, char *symbol)
 {
-    SymbolTableEntryPtr entry = table->root;
-    while (entry != NULL)
+    ListNodePtr node;
+    ListNodeData data;
+    strncpy(data.symbol.symbolName, symbol, MAX_LABEL_LENGTH);
+
+    node = findNode(&table->list, &data, symbolNameComparer);
+    
+    if (node == NULL)
     {
-        if (strcmp(entry->symbol.symbolName, symbol) == 0)
-        {
-            return &entry->symbol;
-        }
-        
-        entry = entry->next;
+        return NULL;
     }
-    return NULL;
+    
+    return &node->data->symbol;
 }
 
-
-void freeSymbolTableEntry(SymbolTableEntryPtr tableEntry)
-{
-    free(tableEntry);
-}
 
 void freeSymbolTable(SymbolTablePtr table)
 {
-    SymbolTableEntryPtr entry = table->root;
-    SymbolTableEntryPtr next = entry;
-    
-    while (entry != NULL)
-    {
-        next = entry->next;
-        freeSymbolTableEntry(entry);
-        entry = next;
-    }
+    freeList(&table->list, NULL);
 }

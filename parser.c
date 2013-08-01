@@ -514,7 +514,7 @@ Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType)
     
     if (strcmp(guidance, ENTRY_GUIDANCE_TOKEN) == 0)
     {
-        *guidanceType = GuidanceType_Extern;
+        *guidanceType = GuidanceType_Entry;
         found = True;
         goto end;
     }

@@ -39,11 +39,19 @@ int main(int argc, char** argv) {
     
     symbolTable = initSymbolTable();
     
-    firstPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName);
+    if (!firstPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName))
+    {
+        fclose(sourceFile);
+        return EXIT_FAILURE;
+    }
   
     rewind(sourceFile);
     
-    secondPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName);
+    if (!secondPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName))
+    {
+        fclose(sourceFile);
+        return EXIT_FAILURE;
+    }
     
     if ((ferrorCode = ferror(sourceFile)))
     {
