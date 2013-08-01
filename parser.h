@@ -13,6 +13,7 @@
 #include "symboltable.h"
 #include "datasection.h"
 #include "codesection.h"
+#include "instructionqueue.h"
 
 SourceLine initSourceLine(char *text, int lineNumber, char* fileName);
 void freeSourceLine(SourceLine *line);
@@ -22,8 +23,8 @@ Boolean isBlankLine(SourceLine *sourceLine);
 Boolean isCommentLine(SourceLine *sourceLine);
 Boolean isImaginaryGuidance(SourceLine *sourceLine);
 Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType);
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName);
-Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName);
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName);
+Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName);
 Boolean tryReadNumber(SourceLinePtr sourceLine, int *value);
 Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);
 char *tryReadLabel(SourceLine *sourceLine);

@@ -12,7 +12,7 @@
 #include "parser.h"
 #include "consts.h"
 #include "symboltable.h"
-
+#include "instructionqueue.h"
 
 /*
  * 
@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
     SymbolTable symbolTable;
     DataSection dataSection;
     CodeSection codeSection;
+    InstructionQueue instructionQueue;
     
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
@@ -39,7 +40,9 @@ int main(int argc, char** argv) {
     
     symbolTable = initSymbolTable();
     
-    if (!firstPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName))
+    instructionQueue = initInstructionQueue();
+    
+    if (!firstPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, &codeSection, sourceFileName))
     {
         fclose(sourceFile);
         return EXIT_FAILURE;
@@ -47,7 +50,7 @@ int main(int argc, char** argv) {
   
     rewind(sourceFile);
     
-    if (!secondPass(sourceFile, &symbolTable, &dataSection, &codeSection, sourceFileName))
+    if (!secondPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, &codeSection, sourceFileName))
     {
         fclose(sourceFile);
         return EXIT_FAILURE;

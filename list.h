@@ -10,10 +10,11 @@
 
 #include "symbol.h"
 
-typedef enum {NodeType_Symbol} NodeType;
+typedef enum {NodeType_Symbol, NodeType_Instruction} NodeType;
 
 typedef union {
        Symbol symbol; 
+       InstructionLayoutPtr instruction; 
     } ListNodeData, *ListNodeDataPtr;
 
 typedef struct tNode{

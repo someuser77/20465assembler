@@ -21,6 +21,7 @@ char *getNodeTypeName(NodeType nodeType)
     {
         listTypeNames = (char **)malloc(sizeof(char *) * 2);
         listTypeNames[NodeType_Symbol] = "Symbol";
+        listTypeNames[NodeType_Instruction] = "Instruction";
         initialized = True;
     }
     
@@ -81,10 +82,14 @@ void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData))
     while (node != NULL)
     {
         next = node->next;
+        
         if (freeNodeData != NULL)
         {
                 (*freeNodeData)(node->data);
         }
+        
+        free(node->data);
+        
         node = next;
     }
 }

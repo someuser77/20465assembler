@@ -10,6 +10,7 @@
 #include "opcodemap.h"
 #include "logging.h"
 #include "datasection.h"
+#include "instructionqueue.h"
 
 typedef enum {Pass_First, Pass_Second} Pass;
 
@@ -140,7 +141,8 @@ SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
 }
 
 Boolean pass(FILE *sourceFile, 
-        SymbolTablePtr symbolTable, 
+        SymbolTablePtr symbolTable,
+        InstructionQueuePtr instructionQueue,
         DataSection *dataSection, 
         CodeSection *codeSection, 
         char *sourceFileName, 
@@ -314,13 +316,27 @@ Boolean pass(FILE *sourceFile,
         
         sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
         
-        instructionLayout = getInstructionLayout(sourceLine, opcode);
         
-        if (instructionLayout == NULL)
+        if (pass == Pass_First)
         {
-            logParsingError(sourceLine, "Unable to parse opcode.");
-            continue;
+            instructionLayout = getInstructionLayout(sourceLine, opcode);
+        
+            if (instructionLayout == NULL)
+            {
+                logParsingError(sourceLine, "Unable to parse opcode.");
+                continue;
+            }
+        
+            insertInstruction(instructionQueue, instructionLayout);
         }
+        else if (pass == Pass_Second)
+        {
+            instructionLayout = getNextInstruction(instructionQueue);
+            
+            printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
+            
+        }
+        
         
         instructionSize = getInstructionSizeInWords(instructionLayout);
         
@@ -340,14 +356,14 @@ Boolean pass(FILE *sourceFile,
     return True;
 }
 
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
 {
-    return pass(sourceFile, symbolTable, dataSection, codeSection, sourceFileName, Pass_First);
+    return pass(sourceFile, symbolTable, instructionQueue, dataSection, codeSection, sourceFileName, Pass_First);
 }
 
-Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
 {
-    return pass(sourceFile, symbolTable, dataSection, codeSection, sourceFileName, Pass_Second);
+    return pass(sourceFile, symbolTable, instructionQueue, dataSection, codeSection, sourceFileName, Pass_Second);
 }
 
 char *skipWhitespaceInString(char *str)
