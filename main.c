@@ -30,6 +30,8 @@ int main(int argc, char** argv) {
     CodeSection codeSection;
     InstructionQueue instructionQueue;
     
+    codeSection.symbolTable = &symbolTable;
+    
     sourceFile = fopen(sourceFileName, "r");
     if (sourceFile == NULL)
     {
@@ -42,7 +44,7 @@ int main(int argc, char** argv) {
     
     instructionQueue = initInstructionQueue();
     
-    if (!firstPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, &codeSection, sourceFileName))
+    if (!firstPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, sourceFileName))
     {
         fclose(sourceFile);
         return EXIT_FAILURE;
@@ -50,7 +52,7 @@ int main(int argc, char** argv) {
   
     rewind(sourceFile);
     
-    if (!secondPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, &codeSection, sourceFileName))
+    if (!secondPass(sourceFile, &codeSection, &instructionQueue, sourceFileName))
     {
         fclose(sourceFile);
         return EXIT_FAILURE;

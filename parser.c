@@ -112,10 +112,10 @@ SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
 
     skipWhitespace(sourceLine);
     
-    /* we assume this is really an extern otherwise we would not be called */
-    if (strncmp(sourceLine->text, EXTERN_GUIDANCE_TOKEN, EXTERN_GUIDANCE_TOKEN_LENGTH) == 0)
+    /* we assume this is really an entry otherwise we would not be called */
+    if (strncmp(sourceLine->text, ENTRY_GUIDANCE_TOKEN, ENTRY_GUIDANCE_TOKEN_LENGTH) == 0)
     {
-        sourceLine->text += EXTERN_GUIDANCE_TOKEN_LENGTH;
+        sourceLine->text += ENTRY_GUIDANCE_TOKEN_LENGTH;
     }
 
     skipWhitespace(sourceLine);
@@ -355,7 +355,7 @@ Boolean pass(FILE *sourceFile,
     return True;
 }
 
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName)
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
@@ -373,6 +373,10 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
     int instructionSize;
     
     int lineNumber = 0;
+
+#ifdef DEBUG
+    printf("\n\n === FIRST PASS === \n\n");
+#endif
     
     while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
     {
@@ -529,7 +533,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
     return True;
 }
 
-Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, CodeSection *codeSection, char *sourceFileName)
+Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, char *sourceFileName)
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
@@ -540,13 +544,16 @@ Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueu
     GuidanceType guidanceType;
     Opcode opcode;
     InstructionLayoutPtr instructionLayout;
+    SymbolTablePtr symbolTable = codeSection->symbolTable;
     
     int instructionSize;
     
     int lineNumber = 0;
 
+#ifdef DEBUG
     printf("\n\n === SECOND PASS === \n\n");
-    
+#endif    
+
     while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
     {
         bufferPos = buffer;
@@ -598,6 +605,8 @@ Boolean secondPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueu
         }
         
         instructionLayout = getNextInstruction(instructionQueue);
+        
+        writeInstruction(codeSection, instructionLayout);
             
         printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
         

@@ -9,11 +9,15 @@
 #define	CODE_H
 
 #include "types.h"
-
+#include "memory.h"
+#include "symboltable.h"
 typedef struct 
 {
+    SymbolTablePtr symbolTable;
     Memory memory;    
 } CodeSection;
+
+int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction);
 
 #endif	/* CODE_H */
 

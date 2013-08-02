@@ -58,6 +58,8 @@
 
 #define MAX_MEMORY_SIZE 2000
 
+#define ADDRESSING_TYPES 4
+
 /* turns on debug output */
 #define DEBUG
 
