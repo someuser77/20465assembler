@@ -11,13 +11,13 @@
 #include "consts.h"
 #include "types.h"
 
-typedef enum {SymbolType_Code, SymbolType_Data} SymbolType;
+typedef enum {SymbolSection_Code, SymbolSection_Data} SymbolSection;
 
 typedef struct tSymbol
 {
     char symbolName[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
     int value;
-    SymbolType symbolType;
+    SymbolSection symbolSection;
     Boolean entry;
 } Symbol, *SymbolPtr;
 

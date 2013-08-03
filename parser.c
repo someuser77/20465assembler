@@ -126,7 +126,7 @@ SymbolPtr handleExtern(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     
     label = cloneString(sourceLine->text, end - sourceLine->text);
     
-    symbol = insertSymbol(symbolTable, label, SymbolType_Code, EXTERN_SYMBOL_VALUE);
+    symbol = insertSymbol(symbolTable, label, SymbolSection_Code, EXTERN_SYMBOL_VALUE);
 
     return symbol;
 }
@@ -247,7 +247,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
 #endif
                         if (label != NULL)
                         {
-                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
                                     logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
                                     return False;
@@ -268,7 +268,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
 #endif
                         if (label != NULL)
                         {
-                                if (insertSymbol(symbolTable, label, SymbolType_Data, dataCounter) == NULL)
+                                if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
                                     logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
                                     return False;
@@ -297,7 +297,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
         
         if (foundSymbol)
         {
-            insertSymbol(symbolTable, label, SymbolType_Code, instructionCounter);
+            insertSymbol(symbolTable, label, SymbolSection_Code, instructionCounter);
         }
         
         if (!tryReadOpcode(sourceLine, &opcode))

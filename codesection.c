@@ -69,7 +69,7 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
         return;
     }
     
-    if (symbolPtr->symbolType == EXTERN_SYMBOL_VALUE)
+    if (symbolPtr->symbolSection == EXTERN_SYMBOL_VALUE)
     {
         logErrorInLineFormat(sourceLine, "Unable to calculate offset to an external symbol '%s'.\n", symbol);
         return;

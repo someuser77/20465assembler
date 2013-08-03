@@ -16,7 +16,7 @@ Boolean symbolNameComparer(ListNodeDataPtr a, ListNodeDataPtr b)
     return strcmp(a->symbol.symbolName, b->symbol.symbolName) == 0;
 }
 
-SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int value)
+SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolSection, int value)
 {
     ListNodeData dataToSearch;
     ListNodeDataPtr dataToInsert;
@@ -35,7 +35,7 @@ SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType
     dataToInsert = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
     
     dataToInsert->symbol.entry = False;
-    dataToInsert->symbol.symbolType = symbolType;
+    dataToInsert->symbol.symbolSection = symbolSection;
     dataToInsert->symbol.value = value;
     
     strncpy(dataToInsert->symbol.symbolName, symbol, MAX_LABEL_LENGTH);
@@ -79,7 +79,7 @@ void printSymbolTable(SymbolTablePtr table)
 
 void fixDataOffsetForNode(ListNodeDataPtr dataPtr, void *context)
 {
-    if (dataPtr->symbol.symbolType == SymbolType_Data)
+    if (dataPtr->symbol.symbolSection == SymbolSection_Data)
     {
         dataPtr->symbol.value += *(int*)(context);
     }
