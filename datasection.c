@@ -6,7 +6,22 @@
 #include "parser.h"
 #include "memory.h"
 
+DataSection *initDataSection()
+{
+   DataSection *dataSection;
+   
+   dataSection = (DataSection *)malloc(sizeof(DataSection));
+   
+   dataSection->memory = initMemory();
+   
+   return dataSection;
+}
 
+void freeDataSection(DataSection *dataSection)
+{
+    freeMemory(dataSection->memory);
+    free(dataSection);
+}
 
 int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
 {
@@ -51,7 +66,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
             sourceLine->text += DATA_GUIDANCE_SEPARATOR_LENGTH;
         }
         
-        pos = writeInt(&dataSection->memory, num);
+        pos = writeInt(dataSection->memory, num);
         if (pos == MEMORY_OUT_OF_MEMORY)
         {
             logError("Unable to write data. Out of memory.");
@@ -92,9 +107,11 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
         return DATA_WRITE_ERROR;
     }
     
+    sourceLine->text += strlen("\"");
+    
     start = sourceLine->text;
     
-    end = strchr(start + 1, '"');
+    end = strchr(start, '"');
     
     if (end == NULL)
     {
@@ -102,25 +119,33 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
         return DATA_WRITE_ERROR;
     }
     
-    length = end - start - 1;
+    length = end - start;
     
     for (i = 0; i < length; i++)
     {
         value = *sourceLine->text;
-        pos = writeInt(&dataSection->memory, (int)value);
+        pos = writeInt(dataSection->memory, (int)value);
         if (pos == MEMORY_OUT_OF_MEMORY)
         {
             logErrorInLine(sourceLine, "Unable to write string, Out of memory.");
             return DATA_WRITE_ERROR;
         }
+        sourceLine->text++;
     }
     
-    pos = writeInt(&dataSection->memory, 0);
+    pos = writeInt(dataSection->memory, 0);
     if (pos == MEMORY_OUT_OF_MEMORY)
     {
         logErrorInLine(sourceLine, "Unable to write string, Out of memory.");
         return DATA_WRITE_ERROR;
     }
     
+    sourceLine->text += strlen("\"");
+    
     return pos;
+}
+
+void printDataSection(DataSection *dataSection)
+{
+    printMemory(dataSection->memory);
 }

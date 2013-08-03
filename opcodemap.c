@@ -245,7 +245,7 @@ Boolean readInstructionRepetition(SourceLinePtr sourceLine, OpcodeLayoutPtr inst
 
 /* returns a pointer to the first OPERAND_SEPERATOR or EOL. 
  * never NULL because EOL is always present.*/
-char *getOperandBoundry(SourceLinePtr sourceLine)
+char *getOperandTokenEnd(SourceLinePtr sourceLine)
 {
     char *start = sourceLine->text;
     char *end = strchr(start, OPERAND_SEPERATOR);
@@ -253,10 +253,14 @@ char *getOperandBoundry(SourceLinePtr sourceLine)
     if (end == NULL)
     {
         end = strchr(start, EOL);
-        end--;
     }
     
-    while (isspace(*end)) end--;
+    end--;
+    
+    while (end > start && isspace(*end)) end--;
+    
+    /* end now points to the last char of the label */
+    end++;
     
     return end;
 }
@@ -309,11 +313,11 @@ void readDirectRegisterAddressingOperand(SourceLinePtr sourceLine, OperandPtr op
 
 void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
-    char *getOperandBoundry(SourceLinePtr sourceLine);
+    char *getOperandTokenEnd(SourceLinePtr sourceLine);
     char *start, *end, *label;
     
     start = sourceLine->text;
-    end = getOperandBoundry(sourceLine);
+    end = getOperandTokenEnd(sourceLine);
     
     if (!isValidLabel(sourceLine, start, end))
     {
@@ -539,7 +543,8 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
     if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_VaryingIndexing))
     {
         start = sourceLine->text;
-        end = getOperandBoundry(sourceLine);
+        
+        end = getOperandTokenEnd(sourceLine);
         
         openingBracket = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
         closingBracket = strchr(start, VARYING_INDEXING_CLOSING_TOKEN);
@@ -576,7 +581,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
     if (addressingTypeIsAllowed(validAddressing, ValidOperandAddressing_Direct))
     {
         start = sourceLine->text;
-        end = getOperandBoundry(sourceLine);
+        end = getOperandTokenEnd(sourceLine);
         if (isValidLabel(sourceLine, start, end))
         {
             readDirectAddressingOperand(sourceLine, operand);
@@ -594,8 +599,8 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 Boolean setComb(SourceLinePtr sourceLine, OpcodeLayoutPtr instructionRepresentation)
 {
     void setSourceLineError(SourceLinePtr sourceLine, char *error, ...);
-    int sourceOperandTargetBits;
-    int targetOperandTargetBits;
+    OperandTargetBits sourceOperandTargetBits;
+    OperandTargetBits targetOperandTargetBits;
  
     /* if the operand size is small (10 bits instead of 20) we need to set 
      the comb bits to tell how to address each operand */

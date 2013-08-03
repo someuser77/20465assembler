@@ -23,7 +23,7 @@ Boolean isBlankLine(SourceLine *sourceLine);
 Boolean isCommentLine(SourceLine *sourceLine);
 Boolean isImaginaryGuidance(SourceLine *sourceLine);
 Boolean tryGetGuidanceType(SourceLine *sourceLine, GuidanceType *guidanceType);
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName);
+int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName);
 Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, char *sourceFileName);
 Boolean tryReadNumber(SourceLinePtr sourceLine, int *value);
 Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd);

@@ -20,8 +20,10 @@ typedef struct tMemory
     int position;
 } Memory;
 
+Memory *initMemory();
+void freeMemory(Memory *memory);
 int writeInt(Memory *memory, int value);
 int writeWord(Memory *memory, Word value);
-
+void printMemory(Memory *memory);
 #endif	/* MEMORY_H */
 

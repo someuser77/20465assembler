@@ -42,7 +42,7 @@ typedef enum {
 
 typedef enum { InstructionOperandSize_Large = 0, InstructionOperandSize_Small = 1 } InstructionOperandSize;
 typedef enum { InstructionRepetition_Single = 0, InstructionRepetition_Double = 1 } InstructionRepetition;
-typedef enum { OperandTargetBits_HighNibble = 1, OperandTargetBits_LowNibble = 0 } OperandTargetBits;
+typedef enum { OperandTargetBits_HighNibble = 0, OperandTargetBits_LowNibble = 1 } OperandTargetBits;
 typedef enum { OperandAddressing_Instant = 0, 
         OperandAddressing_Direct = 1, 
         OperandAddressing_VaryingIndexing = 2, 
@@ -51,6 +51,10 @@ typedef enum { OperandVaryingAddressing_Instant,
         OperandVaryingAddressing_Direct,  
         OperandVaryingAddressing_DirectRegister } OperandVaryingAddressing;        
 
+typedef struct tWord {
+  int value : 20;  
+} Word;
+        
 /* The memory representation of an opcode in the target machine */
 typedef struct tOpcodeLayout {
     unsigned int comb : 2;
@@ -91,18 +95,21 @@ typedef struct tOperand
     TypedAddress address;
     /* can be replaced by making InstructionLayout hold a pointer to Operand */
     Boolean empty;
+    struct tInstructionLayout *instruction;
 } Operand, *OperandPtr;
 
 typedef struct tInstructionLayout {
     OpcodeLayout opcode; /* this might be illegal :-) */ 
     Operand leftOperand;
     Operand rightOperand;
+    Word instructionAddress;
 } InstructionLayout, *InstructionLayoutPtr;
 
 typedef enum {Empty, Comment, Guide, Operation} StatentType;
 
 typedef enum {GuidanceType_Data, GuidanceType_String, GuidanceType_Entry, GuidanceType_Extern} GuidanceType;
 
+/* represents a line of code as a string and metadata */
 typedef struct tSourceLine
 {
     /* a pointer to the position inside the line of code */
@@ -125,9 +132,6 @@ typedef struct tSourceLine
     char *error;
 } SourceLine, *SourceLinePtr;
 
-typedef struct {
-  int value : 20;  
-} Word;
 
 
 #endif	/* TYPES_H */

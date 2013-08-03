@@ -93,3 +93,16 @@ void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData))
         node = next;
     }
 }
+
+void actOnList(ListPtr list, void (*action)(ListNodeDataPtr nodeData, void *context), void *context)
+{
+    ListNodePtr node = list->head;
+    
+    while (node != NULL)
+    {
+        (*action)(node->data, context);
+        
+        node = node->next;
+    }
+}
+

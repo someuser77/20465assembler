@@ -34,6 +34,6 @@ List initList(NodeType type);
 ListNodePtr insertNode(ListPtr list, ListNodeDataPtr data, NodeType nodeType);
 ListNodePtr findNode(ListPtr list, ListNodeDataPtr data, Boolean (*comparer)(ListNodeDataPtr a, ListNodeDataPtr b));
 void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData));
-
+void actOnList(ListPtr list, void (*action)(ListNodeDataPtr nodeData, void *context), void *context);
 #endif	/* LIST_H */
 

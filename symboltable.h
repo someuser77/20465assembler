@@ -12,7 +12,7 @@
 #include "types.h"
 #include "list.h"
 
-#define EMPTY_SYMBOL_VALUE -1
+#define EXTERN_SYMBOL_VALUE -1
 
 typedef struct {
     List list;
@@ -22,4 +22,6 @@ SymbolTable initSymbolTable();
 SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolType symbolType, int value);
 SymbolPtr findSymbol(SymbolTablePtr table, char *symbol);
 void freeSymbolTable(SymbolTablePtr table);
+void printSymbolTable(SymbolTablePtr table);
+void fixDataOffset(SymbolTablePtr table, int offset);
 #endif	/* SYMBOLTABLE_H */

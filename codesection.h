@@ -15,10 +15,16 @@
 typedef struct 
 {
     SymbolTablePtr symbolTable;
-    Memory memory;    
+    Memory *memory;
+    Word codeBaseAddress;
 } CodeSection;
 
+CodeSection *initCodeSection(SymbolTablePtr symbolTable);
+void freeCodeSection(CodeSection *codeSection);
 int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction, SourceLinePtr sourceLine);
-
+void printCodeSection(CodeSection *codeSection);
+void setCodeBaseAddress(CodeSection *codeSection, Word address);
+int getAbsoluteInstructionCounter(CodeSection *codeSection);
+int getRelativeInstructionCounter(CodeSection *codeSection);
 #endif	/* CODE_H */
 

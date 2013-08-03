@@ -20,51 +20,72 @@
 int main(int argc, char** argv) {
     
     FILE *sourceFile;
-    char *sourceFileName = "ps.as";
+    char *sourceFileName = "example.as";
     
     int ferrorCode;
-    
+    int instructionCounter;
     
     SymbolTable symbolTable;
-    DataSection dataSection;
-    CodeSection codeSection;
+    DataSection *dataSection;
+    CodeSection *codeSection;
     InstructionQueue instructionQueue;
     
-    codeSection.symbolTable = &symbolTable;
+    int exitCode;
+    
+    codeSection = initCodeSection(&symbolTable);
+    dataSection = initDataSection();
     
     sourceFile = fopen(sourceFileName, "r");
+    
     if (sourceFile == NULL)
     {
         fprintf(stderr, "Error opening file %s.", sourceFileName);
         exit(1);
     }
     
-    
     symbolTable = initSymbolTable();
     
     instructionQueue = initInstructionQueue();
     
-    if (!firstPass(sourceFile, &symbolTable, &instructionQueue, &dataSection, sourceFileName))
+    instructionCounter = firstPass(sourceFile, &symbolTable, &instructionQueue, dataSection, sourceFileName);
+    
+    if (instructionCounter == -1)
     {
-        fclose(sourceFile);
-        return EXIT_FAILURE;
+        exitCode = EXIT_FAILURE;
+        goto cleanup;
     }
   
     rewind(sourceFile);
+
+#ifdef DEBUG
+    printf("Shifting data by %d.\n", instructionCounter);
+#endif
     
-    if (!secondPass(sourceFile, &codeSection, &instructionQueue, sourceFileName))
+    fixDataOffset(&symbolTable, instructionCounter);
+    
+    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName))
     {
-        fclose(sourceFile);
-        return EXIT_FAILURE;
+        exitCode = EXIT_FAILURE;
+        goto cleanup;
     }
     
     if ((ferrorCode = ferror(sourceFile)))
     {
         fprintf(stderr, "Error reading from file %s %d.", sourceFileName, ferrorCode);
-        exit(EXIT_FAILURE);
+        exitCode = EXIT_FAILURE;
+        goto cleanup;
     }
     
+    printSymbolTable(&symbolTable);
+    
+    printCodeSection(codeSection);
+    
+    exitCode = EXIT_SUCCESS;
+    
+cleanup:
+    freeCodeSection(codeSection);
+    freeDataSection(dataSection);
     fclose(sourceFile);
     
-    return (EXIT_SUCCESS);
+    return exitCode;
 }

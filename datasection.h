@@ -13,13 +13,15 @@
 
 typedef struct 
 {
-    Memory memory;    
+    Memory *memory;    
 } DataSection;
 
 #define DATA_WRITE_ERROR -1
 
+DataSection *initDataSection();
+void freeDataSection(DataSection *dataSection);
 int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine);
 int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine);
-
+void printDataSection(DataSection *dataSection);
 #endif	/* DATA_H */
 

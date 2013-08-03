@@ -126,7 +126,7 @@ SymbolPtr handleExtern(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     
     label = cloneString(sourceLine->text, end - sourceLine->text);
     
-    symbol = insertSymbol(symbolTable, label, SymbolType_Code, EMPTY_SYMBOL_VALUE);
+    symbol = insertSymbol(symbolTable, label, SymbolType_Code, EXTERN_SYMBOL_VALUE);
 
     return symbol;
 }
@@ -166,12 +166,12 @@ SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     return symbol;
 }
 
-Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName)
+int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName)
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
     int dataCounter = 0;
-    int instructionCounter = 0;
+    int instructionCounter = BASE_ADDRESS;
     SourceLine line;
     SourceLinePtr sourceLine = &line;
     char *bufferPos;
@@ -243,6 +243,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
                     case GuidanceType_Data:
 #ifdef DEBUG
                         printf("Found Data.\n");
+                        printf("Data Offset: %d\n", dataCounter);
 #endif
                         if (label != NULL)
                         {
@@ -263,6 +264,7 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
                     case GuidanceType_String:
 #ifdef DEBUG
                         printf("Found String.\n");
+                        printf("Data Offset: %d\n", dataCounter);
 #endif
                         if (label != NULL)
                         {
@@ -316,7 +318,6 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
         
         sourceLine->text += OPCODE_CONTROL_PARAMETER_SEPERATOR_LENGTH;
         
-        
         instructionLayout = getInstructionLayout(sourceLine, opcode);
         
         if (instructionLayout == NULL)
@@ -326,12 +327,15 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
             continue;
         }
         
+        instructionLayout->instructionAddress.value = instructionCounter;
+        
         insertInstruction(instructionQueue, instructionLayout);
         
         instructionSize = getInstructionSizeInWords(instructionLayout);
         
 #ifdef DEBUG
         printf("Instruction size in words: %d\n", instructionSize);
+        printf("Instruction Offset: %d\n", instructionCounter);
 #endif
         
         instructionCounter += instructionSize;
@@ -344,7 +348,11 @@ Boolean firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueue
         }
     }
     
-    return successfulPass;
+#ifdef DEBUG
+    printf("\nNext slot after last instruction: %d\n", instructionCounter);
+#endif
+    
+    return successfulPass ? instructionCounter : -1;
 }
 
 Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, char *sourceFileName)
@@ -418,9 +426,9 @@ Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueueP
         instructionLayout = getNextInstruction(instructionQueue);
         
         writeInstruction(codeSection, instructionLayout, sourceLine);
-            
+#ifdef DEBUG            
         printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
-        
+#endif        
         instructionSize = getInstructionSizeInWords(instructionLayout);
         
 #ifdef DEBUG
@@ -635,7 +643,10 @@ InstructionLayoutPtr initInstructionLayout()
     }
     memset(result, 0, sizeof(InstructionRepetition));
     result->leftOperand.empty = True;
+    result->leftOperand.instruction = result;
     result->rightOperand.empty = True;
+    result->rightOperand.instruction = result;
+    
     return result;
 }
 
@@ -712,6 +723,7 @@ Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
     
     numberEnd = numberStart;
     
+    /* as the specification says a number starts with a sign followed by digits */
     if (*numberEnd == '-' || *numberEnd == '+') numberEnd++;
     
     while (isdigit(*numberEnd)) numberEnd++;

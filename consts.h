@@ -60,6 +60,8 @@
 
 #define ADDRESSING_TYPES 4
 
+#define BASE_ADDRESS 100
+
 /* turns on debug output */
 /* #define DEBUG */
 

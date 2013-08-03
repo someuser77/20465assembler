@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "symboltable.h"
 #include "list.h"
@@ -60,8 +61,31 @@ SymbolPtr findSymbol(SymbolTablePtr table, char *symbol)
     return &node->data->symbol;
 }
 
-
 void freeSymbolTable(SymbolTablePtr table)
 {
     freeList(&table->list, NULL);
+}
+
+void printSymbol(ListNodeDataPtr dataPtr, void *context)
+{
+    printf("%s\t%d\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value, dataPtr->symbol.value);
+}
+
+void printSymbolTable(SymbolTablePtr table)
+{
+    printf("Symbol table: \n");
+    actOnList(&table->list, printSymbol, NULL);
+}
+
+void fixDataOffsetForNode(ListNodeDataPtr dataPtr, void *context)
+{
+    if (dataPtr->symbol.symbolType == SymbolType_Data)
+    {
+        dataPtr->symbol.value += *(int*)(context);
+    }
+}
+
+void fixDataOffset(SymbolTablePtr table, int offset)
+{
+    actOnList(&table->list, fixDataOffsetForNode, &offset);
 }

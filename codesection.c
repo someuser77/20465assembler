@@ -1,4 +1,6 @@
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "types.h"
 #include "codesection.h"
 #include "memory.h"
@@ -8,6 +10,23 @@
 #define REGISTER_DIGIT_INDEX 1
 
 typedef void (*OperandWriter)(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine);
+
+CodeSection *initCodeSection(SymbolTablePtr symbolTable)
+{
+    CodeSection *codeSection;
+    
+    codeSection = (CodeSection *)malloc(sizeof(CodeSection));
+    codeSection->symbolTable = symbolTable;
+    codeSection->memory = initMemory();
+    codeSection->codeBaseAddress.value = BASE_ADDRESS;
+    return codeSection;
+}
+
+void freeCodeSection(CodeSection *codeSection)
+{
+    free(codeSection->memory);
+    free(codeSection);
+}
 
 int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
 {
@@ -29,9 +48,11 @@ int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
     return id;
 }
 
-void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
+void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructionAddress, SourceLinePtr sourceLine)
 {
-    int address;
+    Word symbolAddress;
+    int offset;
+    
     SymbolPtr symbolPtr;
     
     if (symbol == NULL)
@@ -48,14 +69,46 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
         return;
     }
     
-    address = symbolPtr->value;
+    if (symbolPtr->symbolType == EXTERN_SYMBOL_VALUE)
+    {
+        logErrorInLineFormat(sourceLine, "Unable to calculate offset to an external symbol '%s'.\n", symbol);
+        return;
+    }
     
-    writeInt(&codeSection->memory, address);
+    symbolAddress.value = symbolPtr->value;
+    
+    offset = symbolAddress.value - instructionAddress.value; 
+    
+    writeInt(codeSection->memory, offset);
+}
+
+void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
+{
+    Word symbolAddress;
+    SymbolPtr symbolPtr;
+    
+    if (symbol == NULL)
+    {
+        logError("Symbol address to write was NULL.");
+        return;
+    }
+    
+    symbolPtr = findSymbol(codeSection->symbolTable, symbol);
+    
+    if (symbolPtr == NULL)
+    {
+        logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
+        return;
+    }
+    
+    symbolAddress.value = symbolPtr->value;
+    
+    writeWord(codeSection->memory, symbolAddress);
 }
 
 void writeInstantAddress(CodeSection *codeSection, int address)
 {
-    writeInt(&codeSection->memory, address);
+    writeInt(codeSection->memory, address);
 }
 
 void setSourceRegister(InstructionLayoutPtr instruction, int registerId)
@@ -97,7 +150,7 @@ void writeOperandWithVaryingIndexingAddressing(CodeSection *codeSection, Operand
     switch (operand->address.varyingAddress.adressing)
     {
         case OperandVaryingAddressing_Direct:
-            writeSymbolAddress(codeSection, operand->address.varyingAddress.address.label, sourceLine);
+            writeOffsetToSymbol(codeSection, operand->address.varyingAddress.address.label, operand->instruction->instructionAddress , sourceLine);
             break;
         case OperandVaryingAddressing_Instant:
             writeInstantAddress(codeSection, operand->address.varyingAddress.address.value);
@@ -160,11 +213,32 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     
     memcpy(&word, &instruction->opcode, sizeof(OpcodeLayout));
     
-    writeWord(&codeSection->memory, word);
+    writeWord(codeSection->memory, word);
     
     (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
     
     (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
     
-    return codeSection->memory.position;
+    return codeSection->memory->position;
+}
+
+void printCodeSection(CodeSection *codeSection)
+{
+    printf("\n\n === CODE SECTION: === \n\n");
+    printMemory(codeSection->memory);
+}
+
+void setCodeBaseAddress(CodeSection *codeSection, Word address)
+{
+    codeSection->codeBaseAddress = address;
+}
+
+int getAbsoluteInstructionCounter(CodeSection *codeSection)
+{
+    return codeSection->memory->position + codeSection->codeBaseAddress.value;
+}
+
+int getRelativeInstructionCounter(CodeSection *codeSection)
+{
+    return codeSection->memory->position;
 }
