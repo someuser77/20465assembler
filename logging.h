@@ -12,8 +12,8 @@
 
 void logError(char *error);
 void logErrorFormat(char *error, ...);
-void logParsingError(SourceLinePtr line, char *error);
-void logParsingErrorFormat(SourceLinePtr line, char *error, ...);
+void logErrorInLine(SourceLinePtr line, char *error);
+void logErrorInLineFormat(SourceLinePtr line, char *error, ...);
 
 
 

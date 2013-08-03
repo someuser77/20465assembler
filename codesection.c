@@ -44,7 +44,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol)
     
     if (symbolPtr == NULL)
     {
-        logErrorFormat("Unable to find symbol '%s' in symbol table.", symbol);
+        logErrorFormat("Unable to find symbol '%s' in symbol table.\n", symbol);
         return;
     }
     

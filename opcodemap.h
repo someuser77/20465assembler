@@ -19,7 +19,7 @@ typedef void (*OpcodeHandler)(SourceLinePtr sourceLine, InstructionLayoutPtr ins
 Boolean isValidOpcodeName(char *instruction);
 Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode);
 InstructionLayoutPtr getInstructionLayout(SourceLinePtr sourceLine, Opcode opcode);
-
+char *getOpcodeNameToken(SourceLinePtr sourceLine);
 /* returns a string with the opcode name. 
    must be freed after use. */
 char* getOpcodeName(Opcode opcode);

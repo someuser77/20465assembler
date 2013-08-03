@@ -39,21 +39,21 @@ void initNameMap()
 {
     if (OPCODE_TO_NAME[0] != NULL) return;
     
-    OPCODE_TO_NAME[Opcode_mov] = "mov"; 
-    OPCODE_TO_NAME[Opcode_cmp] =  "cmp";
-    OPCODE_TO_NAME[Opcode_add] =  "add";
-    OPCODE_TO_NAME[Opcode_sub] =  "sub";
-    OPCODE_TO_NAME[Opcode_not] =  "not";
-    OPCODE_TO_NAME[Opcode_clr] =  "clr";
-    OPCODE_TO_NAME[Opcode_lea] =  "lea";
-    OPCODE_TO_NAME[Opcode_inc] =  "inc";
-    OPCODE_TO_NAME[Opcode_dec] =  "dec";
-    OPCODE_TO_NAME[Opcode_jmp] =  "jmp";
-    OPCODE_TO_NAME[Opcode_bne] =  "bne";
-    OPCODE_TO_NAME[Opcode_red] =  "red";
-    OPCODE_TO_NAME[Opcode_prn] =  "prn";
-    OPCODE_TO_NAME[Opcode_jsr] =  "jsr";
-    OPCODE_TO_NAME[Opcode_rts] =  "rts";
+    OPCODE_TO_NAME[Opcode_mov]  = "mov"; 
+    OPCODE_TO_NAME[Opcode_cmp]  = "cmp";
+    OPCODE_TO_NAME[Opcode_add]  = "add";
+    OPCODE_TO_NAME[Opcode_sub]  = "sub";
+    OPCODE_TO_NAME[Opcode_not]  = "not";
+    OPCODE_TO_NAME[Opcode_clr]  = "clr";
+    OPCODE_TO_NAME[Opcode_lea]  = "lea";
+    OPCODE_TO_NAME[Opcode_inc]  = "inc";
+    OPCODE_TO_NAME[Opcode_dec]  = "dec";
+    OPCODE_TO_NAME[Opcode_jmp]  = "jmp";
+    OPCODE_TO_NAME[Opcode_bne]  = "bne";
+    OPCODE_TO_NAME[Opcode_red]  = "red";
+    OPCODE_TO_NAME[Opcode_prn]  = "prn";
+    OPCODE_TO_NAME[Opcode_jsr]  = "jsr";
+    OPCODE_TO_NAME[Opcode_rts]  = "rts";
     OPCODE_TO_NAME[Opcode_stop] = "stop";
 }
 
@@ -124,6 +124,23 @@ void setSourceLineError(SourceLinePtr sourceLine, char *error, ...)
     sourceLine->error = cloneString(buffer, strlen(buffer));
 }
 
+char *getOpcodeNameToken(SourceLinePtr sourceLine)
+{
+    char *separator;
+    char *name;
+    
+    separator = strchr(sourceLine->text, OPCODE_CONTROL_PARAMETER_SEPARATOR);
+    
+    if (separator == NULL)
+    {
+        return NULL;
+    }
+    
+    name = cloneString(sourceLine->text, separator - sourceLine->text);
+    
+    return name;
+}
+
 Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode)
 {
     int i;
@@ -142,7 +159,7 @@ Boolean tryReadOpcode(SourceLinePtr sourceLine, Opcode *opcode)
     
     /* the opcode parameter separator is assumed to come right after the '/' */
     
-    name = cloneString(sourceLine->text, separator - sourceLine->text);
+    name = getOpcodeNameToken(sourceLine);
     
     for (i = 0; i < sizeof(OPCODE_TO_NAME) / sizeof(char *); i++)
     {
@@ -232,11 +249,16 @@ char *getOperandBoundry(SourceLinePtr sourceLine)
 {
     char *start = sourceLine->text;
     char *end = strchr(start, OPERAND_SEPERATOR);
+    
     if (end == NULL)
     {
         end = strchr(start, EOL);
+        end--;
     }
-    return end - 1;
+    
+    while (isspace(*end)) end--;
+    
+    return end;
 }
 
 void readInstantAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
@@ -309,15 +331,15 @@ void readDirectAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 
 void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
 {
-    char *start, *end, *opening, *closing;
+    char *start, *opening, *closing;
     char *label;
+    char *originalPosition;
     int length;
     int registerId;
     int offset;
     char *offsetStr;
     
     start = sourceLine->text;
-    end = getOperandBoundry(sourceLine);
 
     opening = strchr(start, VARYING_INDEXING_OPENING_TOKEN);
     if (opening == NULL)
@@ -347,7 +369,7 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
             return;
         }
         
-        length = end - start;
+        length = closing - start;
         
         operand->address.varyingAddress.adressing = OperandVaryingAddressing_Direct;
         operand->address.varyingAddress.address.label = cloneString(start, length);
@@ -372,13 +394,16 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
         goto postProcess;
     }
     
+    originalPosition = sourceLine->text;
+    
     sourceLine->text = start;
     
     if (!tryReadNumber(sourceLine, &offset))
     {
         offsetStr = cloneString(start, closing - start);
         setSourceLineError(sourceLine, "Invalid offset value '%s' for varying index %s.", offsetStr, label);
-        free(offsetStr);
+        /* restore the cursor to its original position */
+        sourceLine->text = originalPosition;
         return;
     }
     
@@ -415,6 +440,7 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine,
 {
     Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddressing, OperandPtr operand);
     char *operandEnd;
+    char *message;
     
     skipWhitespace(sourceLine);
     
@@ -422,7 +448,7 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine,
     
     if (operandEnd == NULL)
     {
-        setSourceLineError(sourceLine, "Missing EOL.");
+        setSourceLineError(sourceLine, "Missing EOL?!");
         return False;
     }
 
@@ -435,7 +461,16 @@ Boolean readDestinationOperand(SourceLinePtr sourceLine,
     
     if (*sourceLine->text != EOL)
     {
-        setSourceLineError(sourceLine, "There should be no text after the second operand.");
+        message = "There should be no text after the second operand.";
+        
+        if (strchr(sourceLine->text, VARYING_INDEXING_OPENING_TOKEN) == NULL)
+        {
+            setSourceLineError(sourceLine, "%s", message);
+        }
+        else
+        {
+            setSourceLineError(sourceLine, "%s There should be no white space between the label and the index token '%c'.", message, VARYING_INDEXING_OPENING_TOKEN);
+        }
         return False;
     }
     
@@ -485,7 +520,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 #ifdef DEBUG
             printf("Found an instant address operand with the value of %d\n", operand->address.value);
 #endif
-            return True;
+            return sourceLine->error == NULL;
         }
     }
     
@@ -497,7 +532,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 #ifdef DEBUG
             printf("Found a direct register address operand with the value of %s\n", operand->address.reg);
 #endif
-            return True;
+            return sourceLine->error == NULL;
         }
     }
     
@@ -534,7 +569,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
             
             
 #endif
-            return True;
+            return sourceLine->error == NULL;
         }
     }
     
@@ -548,7 +583,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
 #ifdef DEBUG
             printf("Found direct addressing operand with the label %s.\n", operand->address.label);
 #endif
-            return True;
+            return sourceLine->error == NULL;
         }
     }
     
@@ -662,31 +697,16 @@ Boolean hasSpaceBetweenOpcodeAndOperands(SourceLinePtr sourceLine)
     return isspace(*sourceLine->text);
 }
 
-Boolean commonOpcodeParse(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
+void readNoOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
 {
     if (!readInstructionModifiers(sourceLine, instructionRepresentation))
     {
-        return False;
-    }
-    
-    /* opcodes with no operand will have a newline '\n' to pass the space check */
-    if (!hasSpaceBetweenOpcodeAndOperands(sourceLine))
-    {
-        setSourceLineError(sourceLine, "Missing space between opcode and operand.");
-        return False;
-    }
-    
-    skipWhitespace(sourceLine);
-    
-    return True;
-}
-
-void readNoOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation)
-{
-    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
-    {
         return;
     }
+    
+    /* if the ocode is the last opcode in the file it will have no new line mark */
+    
+    skipWhitespace(sourceLine);
     
     if (*sourceLine->text != EOL)
     {
@@ -703,11 +723,18 @@ void readNoOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instruct
 
 void readUnaryOperandOpcode(SourceLinePtr sourceLine, InstructionLayoutPtr instructionRepresentation, ValidOperandAddressing validAddressing)
 {
-    
-    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
+    if (!readInstructionModifiers(sourceLine, instructionRepresentation))
     {
         return;
     }
+    
+    if (!hasSpaceBetweenOpcodeAndOperands(sourceLine))
+    {
+        setSourceLineError(sourceLine, "Missing space between opcode and operand.");
+        return;
+    }
+    
+    skipWhitespace(sourceLine);
     
     if (*sourceLine->text == EOL)
     {
@@ -723,11 +750,18 @@ void readBinaryOperandOpcode(SourceLinePtr sourceLine,
         ValidOperandAddressing validSourceAddressing, 
         ValidOperandAddressing validDestinationAddressing)
 {
-    
-    if (!commonOpcodeParse(sourceLine, instructionRepresentation))
+    if (!readInstructionModifiers(sourceLine, instructionRepresentation))
     {
         return;
     }
+    
+    if (!hasSpaceBetweenOpcodeAndOperands(sourceLine))
+    {
+        setSourceLineError(sourceLine, "Missing space between opcode and operand.");
+        return;
+    }
+    
+    skipWhitespace(sourceLine);
     
     readSourceOperand(sourceLine, validSourceAddressing, instructionRepresentation);
     

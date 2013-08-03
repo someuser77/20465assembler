@@ -18,7 +18,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
     
     if (strcmp(dataToken, DATA_GUIDANCE_TOKEN) != 0 || !isspace(charAfterToken))
     {
-        logParsingError(sourceLine, "Tried to write data but no data token found.");
+        logErrorInLine(sourceLine, "Tried to write data but no data token found.");
         free(dataToken);
         return DATA_WRITE_ERROR;
     }
@@ -31,7 +31,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
         
         if (!tryReadNumber(sourceLine, &num))
         {
-            logParsingError(sourceLine, "Unable to parse number.");
+            logErrorInLine(sourceLine, "Unable to parse number.");
             break;
         }
 
@@ -42,7 +42,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
 
         if (*sourceLine->text != EOL && *sourceLine->text != DATA_GUIDANCE_SEPARATOR)
         {
-            logParsingErrorFormat(sourceLine, "Missing separator after value %d.", num);
+            logErrorInLineFormat(sourceLine, "Missing separator after value %d.", num);
             break;
         }
         
@@ -74,7 +74,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
     
     if (strcmp(stringToken, STRING_GUIDANCE_TOKEN) != 0)
     {
-        logParsingError(sourceLine, "Tried to write string but no string token found.");
+        logErrorInLine(sourceLine, "Tried to write string but no string token found.");
         free(stringToken);
         return DATA_WRITE_ERROR;
     }
@@ -87,7 +87,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
     
     if (*sourceLine->text != '"')
     {
-        logParsingError(sourceLine, "Expected '\"'.");
+        logErrorInLine(sourceLine, "Expected '\"'.");
         
         return DATA_WRITE_ERROR;
     }
@@ -98,7 +98,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
     
     if (end == NULL)
     {
-        logParsingError(sourceLine, "Expected '\"' at end of string.");
+        logErrorInLine(sourceLine, "Expected '\"' at end of string.");
         return DATA_WRITE_ERROR;
     }
     
@@ -110,7 +110,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
         pos = writeInt(&dataSection->memory, (int)value);
         if (pos == MEMORY_OUT_OF_MEMORY)
         {
-            logParsingError(sourceLine, "Unable to write string, Out of memory.");
+            logErrorInLine(sourceLine, "Unable to write string, Out of memory.");
             return DATA_WRITE_ERROR;
         }
     }
@@ -118,7 +118,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
     pos = writeInt(&dataSection->memory, 0);
     if (pos == MEMORY_OUT_OF_MEMORY)
     {
-        logParsingError(sourceLine, "Unable to write string, Out of memory.");
+        logErrorInLine(sourceLine, "Unable to write string, Out of memory.");
         return DATA_WRITE_ERROR;
     }
     

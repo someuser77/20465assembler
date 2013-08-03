@@ -20,7 +20,7 @@
 int main(int argc, char** argv) {
     
     FILE *sourceFile;
-    char *sourceFileName = "example.as";
+    char *sourceFileName = "ps.as";
     
     int ferrorCode;
     
