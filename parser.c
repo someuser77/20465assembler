@@ -417,7 +417,7 @@ Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueueP
         
         instructionLayout = getNextInstruction(instructionQueue);
         
-        writeInstruction(codeSection, instructionLayout);
+        writeInstruction(codeSection, instructionLayout, sourceLine);
             
         printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
         

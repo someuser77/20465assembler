@@ -11,13 +11,14 @@
 #include "types.h"
 #include "memory.h"
 #include "symboltable.h"
+
 typedef struct 
 {
     SymbolTablePtr symbolTable;
     Memory memory;    
 } CodeSection;
 
-int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction);
+int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction, SourceLinePtr sourceLine);
 
 #endif	/* CODE_H */
 

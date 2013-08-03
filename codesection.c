@@ -7,7 +7,7 @@
 
 #define REGISTER_DIGIT_INDEX 1
 
-typedef void (*OperandWriter)(CodeSection *codeSection, OperandPtr operand);
+typedef void (*OperandWriter)(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine);
 
 int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
 {
@@ -29,7 +29,7 @@ int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
     return id;
 }
 
-void writeSymbolAddress(CodeSection *codeSection, char *symbol)
+void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
 {
     int address;
     SymbolPtr symbolPtr;
@@ -44,7 +44,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol)
     
     if (symbolPtr == NULL)
     {
-        logErrorFormat("Unable to find symbol '%s' in symbol table.\n", symbol);
+        logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
         return;
     }
     
@@ -68,36 +68,36 @@ void setDestinationRegister(InstructionLayoutPtr instruction, int registerId)
     instruction->opcode.dest_register = registerId;
 }
 
-void writeOperandWithInstantAddressing(CodeSection *codeSection, OperandPtr operand)
+void writeOperandWithInstantAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
     if (operand->empty) return;
 
     writeInstantAddress(codeSection, operand->address.value);
 }
 
-void writeOperandWithDirectAddressing(CodeSection *codeSection, OperandPtr operand)
+void writeOperandWithDirectAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
     if (operand->empty) return;
     
-    writeSymbolAddress(codeSection, operand->address.label);
+    writeSymbolAddress(codeSection, operand->address.label, sourceLine);
 }
 
-void writeOperandWithDirectRegisterAddressing(CodeSection *codeSection, OperandPtr operand)
+void writeOperandWithDirectRegisterAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
     /* just a place holder */
     return;
 }
 
-void writeOperandWithVaryingIndexingAddressing(CodeSection *codeSection, OperandPtr operand)
+void writeOperandWithVaryingIndexingAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
     if (operand->empty) return;
     
-    writeSymbolAddress(codeSection, operand->address.varyingAddress.label);
+    writeSymbolAddress(codeSection, operand->address.varyingAddress.label, sourceLine);
     
     switch (operand->address.varyingAddress.adressing)
     {
         case OperandVaryingAddressing_Direct:
-            writeSymbolAddress(codeSection, operand->address.varyingAddress.address.label);
+            writeSymbolAddress(codeSection, operand->address.varyingAddress.address.label, sourceLine);
             break;
         case OperandVaryingAddressing_Instant:
             writeInstantAddress(codeSection, operand->address.varyingAddress.address.value);
@@ -140,7 +140,7 @@ void setRegisterAddressing(InstructionLayoutPtr instruction)
     }
 }
 
-int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction)
+int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction, SourceLinePtr sourceLine)
 {
     static OperandWriter operandWriter[ADDRESSING_TYPES];
     static Boolean operandWritersInitialized = False;
@@ -162,9 +162,9 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction)
     
     writeWord(&codeSection->memory, word);
     
-    (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand);
+    (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
     
-    (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand);
+    (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
     
     return codeSection->memory.position;
 }
