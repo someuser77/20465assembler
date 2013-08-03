@@ -25,5 +25,6 @@ void freeMemory(Memory *memory);
 int writeInt(Memory *memory, int value);
 int writeWord(Memory *memory, Word value);
 void printMemory(Memory *memory);
+void printWord(Word word);
 #endif	/* MEMORY_H */
 

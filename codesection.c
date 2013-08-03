@@ -14,17 +14,26 @@ typedef void (*OperandWriter)(CodeSection *codeSection, OperandPtr operand, Sour
 CodeSection *initCodeSection(SymbolTablePtr symbolTable)
 {
     CodeSection *codeSection;
+    int i;
     
     codeSection = (CodeSection *)malloc(sizeof(CodeSection));
     codeSection->symbolTable = symbolTable;
     codeSection->memory = initMemory();
     codeSection->codeBaseAddress.value = BASE_ADDRESS;
+    codeSection->memoryType = (MemoryType *)malloc(sizeof(MemoryType) * MAX_MEMORY_SIZE);
+    
+    for (i = 0; i < MAX_MEMORY_SIZE; i++)
+    {
+        codeSection->memoryType[i] = MemoryType_Unknown;
+    }
+    
     return codeSection;
 }
 
 void freeCodeSection(CodeSection *codeSection)
 {
     free(codeSection->memory);
+    free(codeSection->memoryType);
     free(codeSection);
 }
 
@@ -46,6 +55,12 @@ int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
     }
     
     return id;
+}
+
+void setCurrentMemoryLocationType(CodeSection *codeSection, MemoryType memoryType)
+{
+    int pos = codeSection->memory->position;
+    codeSection->memoryType[pos] = memoryType;
 }
 
 void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructionAddress, SourceLinePtr sourceLine)
@@ -79,6 +94,8 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
     
     offset = symbolAddress.value - instructionAddress.value; 
     
+    setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
+    
     writeInt(codeSection->memory, offset);
 }
 
@@ -86,6 +103,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
 {
     Word symbolAddress;
     SymbolPtr symbolPtr;
+    MemoryType memoryType;
     
     if (symbol == NULL)
     {
@@ -102,17 +120,22 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     }
     
     symbolAddress.value = symbolPtr->value;
+    memoryType = MemoryType_Relocatable;
     
     if (symbolAddress.value == EXTERN_SYMBOL_VALUE)
     {
         symbolAddress.value = DEFAULT_EXTERNAL_SYMBOL_ADDRESS;
+        memoryType = MemoryType_External;
     }
+    
+    setCurrentMemoryLocationType(codeSection, memoryType);
     
     writeWord(codeSection->memory, symbolAddress);
 }
 
 void writeInstantAddress(CodeSection *codeSection, int address)
 {
+    setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
     writeInt(codeSection->memory, address);
 }
 
@@ -218,6 +241,8 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     
     memcpy(&word, &instruction->opcode, sizeof(OpcodeLayout));
     
+    setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
+    
     writeWord(codeSection->memory, word);
     
     (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
@@ -227,10 +252,34 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     return codeSection->memory->position;
 }
 
+char getMemoryTypeSymbol(MemoryType memoryType)
+{
+    switch (memoryType)
+    {
+        case MemoryType_Absolute: return 'a';
+        case MemoryType_External: return 'e';
+        case MemoryType_Relocatable: return 'r';
+        default: return 'u';
+    }
+}
+
 void printCodeSection(CodeSection *codeSection)
 {
+    Memory *memory = codeSection->memory;
+    int i;
+    
     printf("\n\n === CODE SECTION: === \n\n");
-    printMemory(codeSection->memory);
+    
+    for (i = 0; i < memory->position; i++)
+    {
+        printf("%d:\t", i);
+        
+        printWord(memory->buffer[i]);
+        
+        printf(" %c", getMemoryTypeSymbol(codeSection->memoryType[i]));
+        
+        printf("\n\n");
+    }
 }
 
 void setCodeBaseAddress(CodeSection *codeSection, Word address)
