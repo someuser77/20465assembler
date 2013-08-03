@@ -103,6 +103,11 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     
     symbolAddress.value = symbolPtr->value;
     
+    if (symbolAddress.value == EXTERN_SYMBOL_VALUE)
+    {
+        symbolAddress.value = DEFAULT_EXTERNAL_SYMBOL_ADDRESS;
+    }
+    
     writeWord(codeSection->memory, symbolAddress);
 }
 

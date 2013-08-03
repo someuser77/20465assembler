@@ -62,6 +62,8 @@
 
 #define BASE_ADDRESS 100
 
+#define DEFAULT_EXTERNAL_SYMBOL_ADDRESS 0
+
 /* turns on debug output */
 /* #define DEBUG */
 
