@@ -147,5 +147,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
 
 void printDataSection(DataSection *dataSection)
 {
+    printf("\n\n === DATA SECTION: === \n\n");
+    
     printMemory(dataSection->memory);
 }
