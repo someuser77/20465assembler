@@ -16,7 +16,7 @@ Boolean symbolNameComparer(ListNodeDataPtr a, ListNodeDataPtr b)
     return strcmp(a->symbol.symbolName, b->symbol.symbolName) == 0;
 }
 
-SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolSection, int value)
+SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolSection, Word value)
 {
     ListNodeData dataToSearch;
     ListNodeDataPtr dataToInsert;
@@ -25,13 +25,15 @@ SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolS
     
     strncpy(dataToSearch.symbol.symbolName, symbol, MAX_LABEL_LENGTH);
     
-    symbolExists = (findNode(&table->list, &dataToSearch, symbolNameComparer) != NULL);
-    
-    if (symbolExists)
+    if (value.value != EXTERN_SYMBOL_VALUE)
     {
-        return NULL;
+        symbolExists = (findNode(&table->list, &dataToSearch, symbolNameComparer) != NULL);
+
+        if (symbolExists)
+        {
+            return NULL;
+        }
     }
-    
     dataToInsert = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
     
     dataToInsert->symbol.entry = False;
@@ -68,7 +70,7 @@ void freeSymbolTable(SymbolTablePtr table)
 
 void printSymbol(ListNodeDataPtr dataPtr, void *context)
 {
-    printf("%s\t%d\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value, dataPtr->symbol.value);
+    printf("%s\t%d\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value.value, dataPtr->symbol.value.value);
 }
 
 void printSymbolTable(SymbolTablePtr table)
@@ -81,11 +83,26 @@ void fixDataOffsetForNode(ListNodeDataPtr dataPtr, void *context)
 {
     if (dataPtr->symbol.symbolSection == SymbolSection_Data)
     {
-        dataPtr->symbol.value += *(int*)(context);
+        dataPtr->symbol.value.value += *(int*)(context);
     }
 }
 
 void fixDataOffset(SymbolTablePtr table, int offset)
 {
     actOnList(&table->list, fixDataOffsetForNode, &offset);
+}
+
+void writeEntry(ListNodeDataPtr dataPtr, void *context)
+{
+    FILE *file = (FILE*)(context);
+    
+    if (dataPtr->symbol.entry)
+    {
+        fprintf(file, "%s\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value.value);
+    }
+}
+
+void writeEntries(FILE *file, SymbolTablePtr table)
+{
+    actOnList(&table->list, writeEntry, file);
 }

@@ -16,7 +16,7 @@ typedef enum {SymbolSection_Code, SymbolSection_Data} SymbolSection;
 typedef struct tSymbol
 {
     char symbolName[MAX_LABEL_LENGTH]; /* labels are no longer than 30 chars */
-    int value;
+    Word value;
     SymbolSection symbolSection;
     Boolean entry;
 } Symbol, *SymbolPtr;

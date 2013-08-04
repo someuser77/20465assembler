@@ -109,7 +109,8 @@ SymbolPtr handleExtern(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     char *end;
     char *label;
     SymbolPtr symbol;
-
+    Word externalSymbolValue = {EXTERN_SYMBOL_VALUE};
+    
     skipWhitespace(sourceLine);
     
     /* we assume this is really an entry otherwise we would not be called */
@@ -126,7 +127,7 @@ SymbolPtr handleExtern(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     
     label = cloneString(sourceLine->text, end - sourceLine->text);
     
-    symbol = insertSymbol(symbolTable, label, SymbolSection_Code, EXTERN_SYMBOL_VALUE);
+    symbol = insertSymbol(symbolTable, label, SymbolSection_Code, externalSymbolValue);
 
     return symbol;
 }
@@ -170,8 +171,8 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
-    int dataCounter = 0;
-    int instructionCounter = BASE_ADDRESS;
+    Word dataCounter = {0};
+    Word instructionCounter = {BASE_ADDRESS};
     SourceLine line;
     SourceLinePtr sourceLine = &line;
     char *bufferPos;
@@ -254,7 +255,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
                                 }
                         }
                         
-                        if ((dataCounter = writeDataArray(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter.value = writeDataArray(dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write data array to memory.");
                             return False;
@@ -275,7 +276,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
                                 }
                         }
                         
-                        if ((dataCounter = writeDataString(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter.value = writeDataString(dataSection, sourceLine)) == DATA_WRITE_ERROR)
                         {
                             logError("Unable to write string to memory.");
                             return False;
@@ -327,7 +328,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
             continue;
         }
         
-        instructionLayout->instructionAddress.value = instructionCounter;
+        instructionLayout->instructionAddress = instructionCounter;
         
         insertInstruction(instructionQueue, instructionLayout);
         
@@ -338,7 +339,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
         printf("Instruction Offset: %d\n", instructionCounter);
 #endif
         
-        instructionCounter += instructionSize;
+        instructionCounter.value += instructionSize;
         
         if (sourceLine->error != NULL)
         {
@@ -352,7 +353,7 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
     printf("\nNext slot after last instruction: %d\n", instructionCounter);
 #endif
     
-    return successfulPass ? instructionCounter : -1;
+    return successfulPass ? instructionCounter.value : -1;
 }
 
 Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, char *sourceFileName)

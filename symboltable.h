@@ -19,9 +19,10 @@ typedef struct {
 } SymbolTable, *SymbolTablePtr;
 
 SymbolTable initSymbolTable();
-SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolSection, int value);
+SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolSection, Word value);
 SymbolPtr findSymbol(SymbolTablePtr table, char *symbol);
 void freeSymbolTable(SymbolTablePtr table);
 void printSymbolTable(SymbolTablePtr table);
+void writeEntries(FILE *file, SymbolTablePtr table);
 void fixDataOffset(SymbolTablePtr table, int offset);
 #endif	/* SYMBOLTABLE_H */

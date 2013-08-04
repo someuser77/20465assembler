@@ -64,6 +64,12 @@
 
 #define DEFAULT_EXTERNAL_SYMBOL_ADDRESS 0
 
+#define SOURCE_FILE_EXTENSION ".as"
+
+#define ENTRIES_FILE_EXTENSION ".ent"
+
+#define EXTERNALS_FILE_EXTENSION ".ext"
+
 /* turns on debug output */
 /* #define DEBUG */
 

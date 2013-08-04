@@ -90,7 +90,7 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
         return;
     }
     
-    symbolAddress.value = symbolPtr->value;
+    symbolAddress = symbolPtr->value;
     
     offset = symbolAddress.value - instructionAddress.value; 
     
@@ -119,7 +119,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
         return;
     }
     
-    symbolAddress.value = symbolPtr->value;
+    symbolAddress = symbolPtr->value;
     memoryType = MemoryType_Relocatable;
     
     if (symbolAddress.value == EXTERN_SYMBOL_VALUE)

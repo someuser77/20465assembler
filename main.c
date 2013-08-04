@@ -13,81 +13,150 @@
 #include "consts.h"
 #include "symboltable.h"
 #include "instructionqueue.h"
+#include "logging.h"
 
-/*
- * 
- */
+char *getEntriesFileName(char *sourceFileName);
+char *getSourceFileName(char *sourceFileName);
+char *getExternalsFileName(char* sourceFileName);
+void writeEntriesToFile(char *fileName, SymbolTablePtr table);
+void writeExternalsToFile(char *fileName, CodeSection *codeSection);
+
 int main(int argc, char** argv) {
-    
+
     FILE *sourceFile;
-    char *sourceFileName = "ps.as";
-    
+    char *sourceFileName = "ps";
+
     int ferrorCode;
     int instructionCounter;
-    
+
     SymbolTable symbolTable;
     DataSection *dataSection;
     CodeSection *codeSection;
     InstructionQueue instructionQueue;
-    
+
     int exitCode;
-    
+
     codeSection = initCodeSection(&symbolTable);
     dataSection = initDataSection();
-    
-    sourceFile = fopen(sourceFileName, "r");
-    
-    if (sourceFile == NULL)
-    {
+
+    sourceFile = fopen(getSourceFileName(sourceFileName), "r");
+
+    if (sourceFile == NULL) {
         fprintf(stderr, "Error opening file %s.", sourceFileName);
         exit(1);
     }
-    
+
     symbolTable = initSymbolTable();
-    
+
     instructionQueue = initInstructionQueue();
-    
+
     instructionCounter = firstPass(sourceFile, &symbolTable, &instructionQueue, dataSection, sourceFileName);
-    
-    if (instructionCounter == -1)
-    {
+
+    if (instructionCounter == -1) {
         exitCode = EXIT_FAILURE;
         goto cleanup;
     }
-  
+
     rewind(sourceFile);
 
 #ifdef DEBUG
     printf("Shifting data by %d.\n", instructionCounter);
 #endif
-    
+
     fixDataOffset(&symbolTable, instructionCounter);
-    
-    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName))
-    {
+
+    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName)) {
         exitCode = EXIT_FAILURE;
         goto cleanup;
     }
-    
-    if ((ferrorCode = ferror(sourceFile)))
-    {
+
+    if ((ferrorCode = ferror(sourceFile))) {
         fprintf(stderr, "Error reading from file %s %d.", sourceFileName, ferrorCode);
         exitCode = EXIT_FAILURE;
         goto cleanup;
     }
-    
+
     printSymbolTable(&symbolTable);
-    
+/*
     printCodeSection(codeSection);
-    
+
     printDataSection(dataSection);
+*/
+    writeEntriesToFile(getEntriesFileName(sourceFileName), &symbolTable);
     
     exitCode = EXIT_SUCCESS;
-    
+
 cleanup:
     freeCodeSection(codeSection);
     freeDataSection(dataSection);
     fclose(sourceFile);
-    
+
     return exitCode;
+}
+
+char *appendExtensionToFileName(char *fileName, char *extension)
+{
+    int fileNameLength = strlen(fileName);
+    int extensionLength = strlen(extension);
+    char *fileNameWithExtension;
+
+    fileNameWithExtension = (char *)malloc(sizeof (char) * (fileNameLength + extensionLength + 1));
+
+    strncpy(fileNameWithExtension, fileName, fileNameLength);
+    
+    strncpy(fileNameWithExtension + fileNameLength, extension, extensionLength);
+    
+    fileNameWithExtension[fileNameLength + extensionLength] = EOL;
+
+    return fileNameWithExtension;
+}
+
+char *getSourceFileName(char *sourceFileName)
+{
+    return appendExtensionToFileName(sourceFileName, SOURCE_FILE_EXTENSION);
+}
+
+char *getEntriesFileName(char *sourceFileName) 
+{
+    return appendExtensionToFileName(sourceFileName, ENTRIES_FILE_EXTENSION);
+}
+
+char *getExternalsFileName(char *sourceFileName) 
+{
+    return appendExtensionToFileName(sourceFileName, EXTERNALS_FILE_EXTENSION);
+}
+
+void writeEntriesToFile(char *fileName, SymbolTablePtr table) 
+{
+    FILE *file;
+    
+    file = fopen(fileName, "w");
+    
+    if (file == NULL)
+    {
+        logErrorFormat("Unable to create file %s.", fileName);
+        return;
+    }
+    
+    writeEntries(file, table);
+    
+    fclose(file);
+}
+
+void writeExternalsToFile(char *fileName, CodeSection *codeSection)
+{
+    Word *externals;
+    int count;
+    int i;
+    FILE *file;
+    
+    file = fopen(fileName, "w");
+    
+    if (file == NULL)
+    {
+        logErrorFormat("Unable to create file %s.", fileName);
+        return;
+    }
+    
+    fclose(file);
 }
