@@ -318,3 +318,25 @@ void fixDataOffset(CodeSection *codeSection, int offset)
 {
     actOnList(&codeSection->symbolTable->list, fixDataOffsetForSymbolAddress, &offset);
 }
+
+void writeExternalSymbol(ListNodeDataPtr nodeData, void *context)
+{
+    fprintf((FILE*)context, "%s\t%o\n", nodeData->symbolLocation->symbol, nodeData->symbolLocation->location.value);
+}
+
+void writeExternalSymbols(CodeSection *codeSection, FILE *file)
+{
+    actOnList(&codeSection->externalSymbols, writeExternalSymbol, file);
+}
+
+void printExternalSymbols(CodeSection *codeSection)
+{
+    printf("\n\n === EXTERNAL SYMBOLS === \n\n");
+    
+    writeExternalSymbols(codeSection, stdout);
+}
+
+
+
+
+

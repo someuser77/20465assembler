@@ -31,5 +31,7 @@ void setCodeBaseAddress(CodeSection *codeSection, Word address);
 Word getAbsoluteInstructionCounter(CodeSection *codeSection);
 Word getRelativeInstructionCounter(CodeSection *codeSection);
 void fixDataOffset(CodeSection *codeSection, int offset);
+void writeExternalSymbols(CodeSection *codeSection, FILE *file);
+void printExternalSymbols(CodeSection *codeSection);
 #endif	/* CODE_H */
 
