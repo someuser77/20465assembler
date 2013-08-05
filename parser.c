@@ -167,12 +167,13 @@ SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     return symbol;
 }
 
-int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName)
+int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, DataSection *dataSection, char *sourceFileName)
 {
     char *tryReadLabel(SourceLine *sourceLine);
     char buffer[MAX_CODE_LINE_LENGTH + 1] = {0};
     Word dataCounter = {0};
-    Word instructionCounter = {BASE_ADDRESS};
+    Word instructionCounter;
+    SymbolTablePtr symbolTable = codeSection->symbolTable;
     SourceLine line;
     SourceLinePtr sourceLine = &line;
     char *bufferPos;
@@ -189,6 +190,8 @@ int firstPass(FILE *sourceFile, SymbolTablePtr symbolTable, InstructionQueuePtr 
 #ifdef DEBUG
     printf("\n\n === FIRST PASS === \n\n");
 #endif
+    
+    instructionCounter = codeSection->codeBaseAddress;
     
     while (fgets(buffer, MAX_CODE_LINE_LENGTH, sourceFile) != NULL)
     {

@@ -1,7 +1,7 @@
 COMPILE_MACRO := gcc -g -ansi -pedantic -Wall
 
-main: main.c instructionqueue.o list.o memory.o logging.o codesection.o datasection.o parser.o symboltable.o opcodemap.o
-	$(COMPILE_MACRO) instructionqueue.o list.o memory.o logging.o codesection.o datasection.o opcodemap.o symboltable.o parser.o main.c -o main
+main: main.c symbollocation.o instructionqueue.o list.o memory.o logging.o codesection.o datasection.o parser.o symboltable.o opcodemap.o
+	$(COMPILE_MACRO) symbollocation.o instructionqueue.o list.o memory.o logging.o codesection.o datasection.o opcodemap.o symboltable.o parser.o main.c -o main
 
 parser.o: parser.c parser.h
 	$(COMPILE_MACRO) -c parser.c
@@ -29,6 +29,9 @@ list.o: list.c list.h
 
 instructionqueue.o: instructionqueue.c instructionqueue.h
 	$(COMPILE_MACRO) -c instructionqueue.c
+
+symbollocation.o: symbollocation.c symbollocation.h
+	$(COMPILE_MACRO) -c symbollocation.c
 
 clean:
 	# the -@ is so the make wont fail it threre were no files to delete

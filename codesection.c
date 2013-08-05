@@ -21,6 +21,7 @@ CodeSection *initCodeSection(SymbolTablePtr symbolTable)
     codeSection->memory = initMemory();
     codeSection->codeBaseAddress.value = BASE_ADDRESS;
     codeSection->memoryType = (MemoryType *)malloc(sizeof(MemoryType) * MAX_MEMORY_SIZE);
+    codeSection->externalSymbols = initList(NodeType_SymbolLocation);
     
     for (i = 0; i < MAX_MEMORY_SIZE; i++)
     {
@@ -102,8 +103,10 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
 void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
 {
     Word symbolAddress;
+    Word symbolLocation;
     SymbolPtr symbolPtr;
     MemoryType memoryType;
+    ListNodeDataPtr dataPtr;
     
     if (symbol == NULL)
     {
@@ -126,6 +129,12 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     {
         symbolAddress.value = DEFAULT_EXTERNAL_SYMBOL_ADDRESS;
         memoryType = MemoryType_External;
+        
+        dataPtr = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
+        symbolLocation = getAbsoluteInstructionCounter(codeSection);
+        dataPtr->symbolLocation = initSymbolLocation(symbol, symbolLocation);
+        
+        insertNode(&codeSection->externalSymbols, dataPtr, NodeType_SymbolLocation);
     }
     
     setCurrentMemoryLocationType(codeSection, memoryType);
@@ -282,17 +291,30 @@ void printCodeSection(CodeSection *codeSection)
     }
 }
 
-void setCodeBaseAddress(CodeSection *codeSection, Word address)
+Word getAbsoluteInstructionCounter(CodeSection *codeSection)
 {
-    codeSection->codeBaseAddress = address;
+    Word word;
+    word.value = codeSection->memory->position + codeSection->codeBaseAddress.value;
+    return word;
 }
 
-int getAbsoluteInstructionCounter(CodeSection *codeSection)
+Word getRelativeInstructionCounter(CodeSection *codeSection)
 {
-    return codeSection->memory->position + codeSection->codeBaseAddress.value;
+    Word word; 
+    word.value = codeSection->memory->position;
+    return word;
 }
 
-int getRelativeInstructionCounter(CodeSection *codeSection)
+void fixDataOffsetForSymbolAddress(ListNodeDataPtr dataPtr, void *context)
 {
-    return codeSection->memory->position;
+    if (dataPtr->symbol.symbolSection == SymbolSection_Data)
+    {
+        dataPtr->symbol.value.value += *(int*)(context);
+    }
+}
+
+/* used to adjust the offsest of the symbols pointing to data after we know the code size  */
+void fixDataOffset(CodeSection *codeSection, int offset)
+{
+    actOnList(&codeSection->symbolTable->list, fixDataOffsetForSymbolAddress, &offset);
 }

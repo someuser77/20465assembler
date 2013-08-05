@@ -41,7 +41,8 @@ int main(int argc, char** argv) {
 
     sourceFile = fopen(getSourceFileName(sourceFileName), "r");
 
-    if (sourceFile == NULL) {
+    if (sourceFile == NULL) 
+    {
         fprintf(stderr, "Error opening file %s.", sourceFileName);
         exit(1);
     }
@@ -50,9 +51,10 @@ int main(int argc, char** argv) {
 
     instructionQueue = initInstructionQueue();
 
-    instructionCounter = firstPass(sourceFile, &symbolTable, &instructionQueue, dataSection, sourceFileName);
+    instructionCounter = firstPass(sourceFile, codeSection, &instructionQueue, dataSection, sourceFileName);
 
-    if (instructionCounter == -1) {
+    if (instructionCounter == -1) 
+    {
         exitCode = EXIT_FAILURE;
         goto cleanup;
     }
@@ -63,14 +65,16 @@ int main(int argc, char** argv) {
     printf("Shifting data by %d.\n", instructionCounter);
 #endif
 
-    fixDataOffset(&symbolTable, instructionCounter);
+    fixDataOffset(codeSection, instructionCounter);
 
-    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName)) {
+    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName)) 
+    {
         exitCode = EXIT_FAILURE;
         goto cleanup;
     }
 
-    if ((ferrorCode = ferror(sourceFile))) {
+    if ((ferrorCode = ferror(sourceFile))) 
+    {
         fprintf(stderr, "Error reading from file %s %d.", sourceFileName, ferrorCode);
         exitCode = EXIT_FAILURE;
         goto cleanup;
@@ -83,6 +87,8 @@ int main(int argc, char** argv) {
     printDataSection(dataSection);
 */
     writeEntriesToFile(getEntriesFileName(sourceFileName), &symbolTable);
+    
+    writeExternalsToFile(getExternalsFileName(sourceFileName), codeSection);
     
     exitCode = EXIT_SUCCESS;
 
@@ -143,11 +149,13 @@ void writeEntriesToFile(char *fileName, SymbolTablePtr table)
     fclose(file);
 }
 
+void writeExternalSymbol(ListNodeDataPtr nodeData, void *context)
+{
+    printf("%s\t%o\n", nodeData->symbolLocation->symbol, nodeData->symbolLocation->location.value);
+}
+
 void writeExternalsToFile(char *fileName, CodeSection *codeSection)
 {
-    Word *externals;
-    int count;
-    int i;
     FILE *file;
     
     file = fopen(fileName, "w");
@@ -157,6 +165,8 @@ void writeExternalsToFile(char *fileName, CodeSection *codeSection)
         logErrorFormat("Unable to create file %s.", fileName);
         return;
     }
+    
+    actOnList(&codeSection->externalSymbols, writeExternalSymbol, NULL);
     
     fclose(file);
 }

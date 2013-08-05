@@ -9,12 +9,14 @@
 #define	LIST_H
 
 #include "symbol.h"
+#include "symbollocation.h"
 
-typedef enum {NodeType_Symbol, NodeType_Instruction} NodeType;
+typedef enum {NodeType_Symbol, NodeType_Instruction, NodeType_SymbolLocation} NodeType;
 
 typedef union {
        Symbol symbol; 
        InstructionLayoutPtr instruction; 
+       SymbolLocationPtr symbolLocation;
     } ListNodeData, *ListNodeDataPtr;
 
 typedef struct tNode{

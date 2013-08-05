@@ -24,5 +24,4 @@ SymbolPtr findSymbol(SymbolTablePtr table, char *symbol);
 void freeSymbolTable(SymbolTablePtr table);
 void printSymbolTable(SymbolTablePtr table);
 void writeEntries(FILE *file, SymbolTablePtr table);
-void fixDataOffset(SymbolTablePtr table, int offset);
 #endif	/* SYMBOLTABLE_H */

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "symboltable.h"
 #include "list.h"
+#include "codesection.h"
 
 SymbolTable initSymbolTable()
 {
@@ -77,19 +78,6 @@ void printSymbolTable(SymbolTablePtr table)
 {
     printf("Symbol table: \n");
     actOnList(&table->list, printSymbol, NULL);
-}
-
-void fixDataOffsetForNode(ListNodeDataPtr dataPtr, void *context)
-{
-    if (dataPtr->symbol.symbolSection == SymbolSection_Data)
-    {
-        dataPtr->symbol.value.value += *(int*)(context);
-    }
-}
-
-void fixDataOffset(SymbolTablePtr table, int offset)
-{
-    actOnList(&table->list, fixDataOffsetForNode, &offset);
 }
 
 void writeEntry(ListNodeDataPtr dataPtr, void *context)

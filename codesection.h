@@ -20,6 +20,7 @@ typedef struct
     Memory *memory;
     MemoryType *memoryType;
     Word codeBaseAddress;
+    List externalSymbols;
 } CodeSection;
 
 CodeSection *initCodeSection(SymbolTablePtr symbolTable);
@@ -27,7 +28,8 @@ void freeCodeSection(CodeSection *codeSection);
 int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction, SourceLinePtr sourceLine);
 void printCodeSection(CodeSection *codeSection);
 void setCodeBaseAddress(CodeSection *codeSection, Word address);
-int getAbsoluteInstructionCounter(CodeSection *codeSection);
-int getRelativeInstructionCounter(CodeSection *codeSection);
+Word getAbsoluteInstructionCounter(CodeSection *codeSection);
+Word getRelativeInstructionCounter(CodeSection *codeSection);
+void fixDataOffset(CodeSection *codeSection, int offset);
 #endif	/* CODE_H */
 
