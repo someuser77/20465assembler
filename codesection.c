@@ -9,7 +9,7 @@
 
 #define REGISTER_DIGIT_INDEX 1
 
-typedef void (*OperandWriter)(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine);
+typedef Boolean (*OperandWriter)(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine);
 
 CodeSection *initCodeSection(SymbolTablePtr symbolTable)
 {
@@ -64,7 +64,7 @@ void setCurrentMemoryLocationType(CodeSection *codeSection, MemoryType memoryTyp
     codeSection->memoryType[pos] = memoryType;
 }
 
-void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructionAddress, SourceLinePtr sourceLine)
+Boolean writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructionAddress, SourceLinePtr sourceLine)
 {
     Word symbolAddress;
     int offset;
@@ -74,7 +74,7 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
     if (symbol == NULL)
     {
         logError("Symbol address to write was NULL.");
-        return;
+        return False;
     }
     
     symbolPtr = findSymbol(codeSection->symbolTable, symbol);
@@ -82,13 +82,13 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
     if (symbolPtr == NULL)
     {
         logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
-        return;
+        return False;
     }
     
     if (symbolPtr->symbolSection == EXTERN_SYMBOL_VALUE)
     {
         logErrorInLineFormat(sourceLine, "Unable to calculate offset to an external symbol '%s'.\n", symbol);
-        return;
+        return False;
     }
     
     symbolAddress = symbolPtr->value;
@@ -98,9 +98,11 @@ void writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instructio
     setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
     
     writeInt(codeSection->memory, offset);
+    
+    return True;
 }
 
-void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
+Boolean writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr sourceLine)
 {
     Word symbolAddress;
     Word symbolLocation;
@@ -111,7 +113,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     if (symbol == NULL)
     {
         logError("Symbol address to write was NULL.");
-        return;
+        return False;
     }
     
     symbolPtr = findSymbol(codeSection->symbolTable, symbol);
@@ -119,7 +121,7 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     if (symbolPtr == NULL)
     {
         logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
-        return;
+        return False;
     }
     
     symbolAddress = symbolPtr->value;
@@ -140,12 +142,15 @@ void writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr so
     setCurrentMemoryLocationType(codeSection, memoryType);
     
     writeWord(codeSection->memory, symbolAddress);
+    
+    return True;
 }
 
-void writeInstantAddress(CodeSection *codeSection, int address)
+Boolean writeInstantAddress(CodeSection *codeSection, Word address)
 {
     setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
-    writeInt(codeSection->memory, address);
+    writeWord(codeSection->memory, address);
+    return True;
 }
 
 void setSourceRegister(InstructionLayoutPtr instruction, int registerId)
@@ -158,45 +163,45 @@ void setDestinationRegister(InstructionLayoutPtr instruction, int registerId)
     instruction->opcode.dest_register = registerId;
 }
 
-void writeOperandWithInstantAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
+Boolean writeOperandWithInstantAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
-    if (operand->empty) return;
+    if (operand->empty) return True;
 
     writeInstantAddress(codeSection, operand->address.value);
-}
-
-void writeOperandWithDirectAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
-{
-    if (operand->empty) return;
     
-    writeSymbolAddress(codeSection, operand->address.label, sourceLine);
+    return True;
 }
 
-void writeOperandWithDirectRegisterAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
+Boolean writeOperandWithDirectAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
+{
+    if (operand->empty) return True;
+    
+    return writeSymbolAddress(codeSection, operand->address.label, sourceLine);
+}
+
+Boolean writeOperandWithDirectRegisterAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
     /* just a place holder */
-    return;
+    return True;
 }
 
-void writeOperandWithVaryingIndexingAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
+Boolean writeOperandWithVaryingIndexingAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
-    if (operand->empty) return;
+    if (operand->empty) return True;
     
     writeSymbolAddress(codeSection, operand->address.varyingAddress.label, sourceLine);
     
     switch (operand->address.varyingAddress.adressing)
     {
         case OperandVaryingAddressing_Direct:
-            writeOffsetToSymbol(codeSection, operand->address.varyingAddress.address.label, operand->instruction->instructionAddress , sourceLine);
-            break;
+            return writeOffsetToSymbol(codeSection, operand->address.varyingAddress.address.label, operand->instruction->instructionAddress , sourceLine);
         case OperandVaryingAddressing_Instant:
-            writeInstantAddress(codeSection, operand->address.varyingAddress.address.value);
-            break;
+            return writeInstantAddress(codeSection, operand->address.varyingAddress.address.value);
         case OperandVaryingAddressing_DirectRegister:
             /* should have been handled earlier. */
             break;
     }
-    
+    return True;
 }
 
 void setRegisterAddressing(InstructionLayoutPtr instruction)
@@ -235,6 +240,7 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     static OperandWriter operandWriter[ADDRESSING_TYPES];
     static Boolean operandWritersInitialized = False;
     
+    Boolean result;
     Word word;
 
     if (!operandWritersInitialized)
@@ -254,9 +260,19 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     
     writeWord(codeSection->memory, word);
     
-    (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
+    result = (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
     
-    (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
+    if (!result)
+    {
+        return -1;
+    }
+    
+    result = (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
+    
+    if (!result)
+    {
+        return -1;
+    }
     
     return codeSection->memory->position;
 }
@@ -272,7 +288,33 @@ char getMemoryTypeSymbol(MemoryType memoryType)
     }
 }
 
+void writeCodeSection(CodeSection *codeSection, FILE *file)
+{
+    Memory *memory = codeSection->memory;
+    int i;
+    
+    for (i = 0; i < memory->position; i++)
+    {
+        fprintf(file, "%o:\t", i + codeSection->codeBaseAddress.value);
+        
+        printWord(memory->buffer[i]);
+        
+        fprintf(file, " %c", getMemoryTypeSymbol(codeSection->memoryType[i]));
+        
+        fprintf(file, "\n");
+    }
+}
+
 void printCodeSection(CodeSection *codeSection)
+{
+    printf("\n\n === CODE SECTION: === \n\n");
+    
+    writeCodeSection(codeSection, stdout);
+    
+    printf("\n");
+}
+
+void printCodeSectionBinary(CodeSection *codeSection)
 {
     Memory *memory = codeSection->memory;
     int i;

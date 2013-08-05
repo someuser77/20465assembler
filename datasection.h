@@ -16,6 +16,7 @@ typedef struct
     Memory *memory;    
 } DataSection;
 
+#define DATA_PARSE_ERROR -2
 #define DATA_WRITE_ERROR -1
 
 DataSection *initDataSection();

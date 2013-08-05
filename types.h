@@ -70,7 +70,7 @@ typedef struct tOpcodeLayout {
 
 typedef union uSimpleAddress {
     char *label;
-    int value;
+    Word value;
     /* this can be represented as a 3 bit field but it will be easier to debug this way. */
     char reg[REGISTER_NAME_LENGTH + 1];
 } SimpleAddress;
@@ -84,7 +84,7 @@ typedef struct tVaryingAddress
 
 typedef union uTypedAddress {
     char *label;
-    int value;
+    Word value;
     VaryingAddress varyingAddress;
     char reg[REGISTER_NAME_LENGTH + 1];
 } TypedAddress;

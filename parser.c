@@ -247,42 +247,46 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                     case GuidanceType_Data:
 #ifdef DEBUG
                         printf("Found Data.\n");
-                        printf("Data Offset: %d\n", dataCounter);
+                        printf("Data Offset: %d\n", dataCounter.value);
 #endif
                         if (label != NULL)
                         {
                                 if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
                                     logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
-                                    return False;
+                                    successfulPass = False;
+                                    goto end;
                                 }
                         }
                         
-                        if ((dataCounter.value = writeDataArray(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter.value = writeDataArray(dataSection, sourceLine)) < 0)
                         {
                             logError("Unable to write data array to memory.");
-                            return False;
+                            successfulPass = False;
+                            goto end;
                         }
                         
                         continue;
                     case GuidanceType_String:
 #ifdef DEBUG
                         printf("Found String.\n");
-                        printf("Data Offset: %d\n", dataCounter);
+                        printf("Data Offset: %d\n", dataCounter.value);
 #endif
                         if (label != NULL)
                         {
                                 if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
                                     logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
-                                    return False;
+                                    successfulPass = False;
+                                    goto end;
                                 }
                         }
                         
-                        if ((dataCounter.value = writeDataString(dataSection, sourceLine)) == DATA_WRITE_ERROR)
+                        if ((dataCounter.value = writeDataString(dataSection, sourceLine)) < 0)
                         {
                             logError("Unable to write string to memory.");
-                            return False;
+                            successfulPass = False;
+                            goto end;
                         }
                         continue;
                     case GuidanceType_Entry:
@@ -296,6 +300,12 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                         handleExtern(sourceLine, symbolTable);
                         continue;
                 }
+            }
+            else
+            {
+                logErrorInLine(sourceLine, "Unknown guidance type.");
+                successfulPass = False;
+                continue;
             }
         }
         
@@ -339,7 +349,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
         
 #ifdef DEBUG
         printf("Instruction size in words: %d\n", instructionSize);
-        printf("Instruction Offset: %d\n", instructionCounter);
+        printf("Instruction Offset: %d\n", instructionCounter.value);
 #endif
         
         instructionCounter.value += instructionSize;
@@ -353,9 +363,9 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
     }
     
 #ifdef DEBUG
-    printf("\nNext slot after last instruction: %d\n", instructionCounter);
+    printf("\nNext slot after last instruction: %d\n", instructionCounter.value);
 #endif
-    
+end:    
     return successfulPass ? instructionCounter.value : -1;
 }
 
@@ -428,11 +438,18 @@ Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueueP
         tryReadOpcode(sourceLine, &opcode);
         
         instructionLayout = getNextInstruction(instructionQueue);
-        
-        writeInstruction(codeSection, instructionLayout, sourceLine);
+
 #ifdef DEBUG            
         printf("Writing: %s\n", getOpcodeName(instructionLayout->opcode.opcode));
-#endif        
+#endif
+        
+        if (writeInstruction(codeSection, instructionLayout, sourceLine) == -1)
+        {
+            logErrorInLineFormat(sourceLine, "Error writing instruction %s.", getOpcodeName(instructionLayout->opcode.opcode));
+            return False;
+        }
+        
+        
         instructionSize = getInstructionSizeInWords(instructionLayout);
         
 #ifdef DEBUG
@@ -734,7 +751,7 @@ Boolean tryReadNumber(SourceLinePtr sourceLine, int *value)
     
     if (numberEnd == numberStart || (numberStart + 1 == numberEnd && *numberEnd == '-'))
     {
-        setSourceLineError(sourceLine, "Unable to find number in line.");
+        setSourceLineError(sourceLine, "Unable to find valid number in line.");
         return False;
     }
     

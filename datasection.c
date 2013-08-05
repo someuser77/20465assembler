@@ -28,6 +28,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
     char *dataToken = cloneString(sourceLine->text, DATA_GUIDANCE_TOKEN_LENGTH);
     char charAfterToken = *(sourceLine->text + DATA_GUIDANCE_TOKEN_LENGTH);
     
+    int result;
     int num;
     int pos;
     
@@ -47,6 +48,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
         if (!tryReadNumber(sourceLine, &num))
         {
             logErrorInLine(sourceLine, "Unable to parse number.");
+            result = DATA_PARSE_ERROR;
             break;
         }
 
@@ -57,7 +59,8 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
 
         if (*sourceLine->text != EOL && *sourceLine->text != DATA_GUIDANCE_SEPARATOR)
         {
-            logErrorInLineFormat(sourceLine, "Missing separator after value %d.", num);
+            logErrorInLineFormat(sourceLine, "Missing separator '%c' after parsed value '%d'.", DATA_GUIDANCE_SEPARATOR, num);
+            result = DATA_PARSE_ERROR;
             break;
         }
         
@@ -70,12 +73,15 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
         if (pos == MEMORY_OUT_OF_MEMORY)
         {
             logError("Unable to write data. Out of memory.");
-            return DATA_WRITE_ERROR;
+            result = DATA_WRITE_ERROR;
+            break;
         }
+        
+        result = pos;
     }
 
     free(dataToken);
-    return pos;
+    return result;
 }
 
 int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
