@@ -26,15 +26,13 @@ SymbolPtr insertSymbol(SymbolTablePtr table, char *symbol, SymbolSection symbolS
     
     strncpy(dataToSearch.symbol.symbolName, symbol, MAX_LABEL_LENGTH);
     
-    if (value.value != EXTERN_SYMBOL_VALUE)
-    {
-        symbolExists = (findNode(&table->list, &dataToSearch, symbolNameComparer) != NULL);
+    symbolExists = (findNode(&table->list, &dataToSearch, symbolNameComparer) != NULL);
 
-        if (symbolExists)
-        {
-            return NULL;
-        }
+    if (symbolExists)
+    {
+        return NULL;
     }
+        
     dataToInsert = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
     
     dataToInsert->symbol.entry = False;
@@ -90,7 +88,14 @@ void writeEntry(ListNodeDataPtr dataPtr, void *context)
     }
 }
 
-void writeEntries(FILE *file, SymbolTablePtr table)
+void writeEntries(SymbolTablePtr table, FILE *file)
 {
     actOnList(&table->list, writeEntry, file);
+}
+
+void printEntries(SymbolTablePtr symbolTable)
+{
+    printf("\n\n === ENTRIES === \n\n");
+    
+    writeEntries(symbolTable, stdout);
 }
