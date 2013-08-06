@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     InstructionQueue instructionQueue;
 
     int exitCode;
-
+    
     codeSection = initCodeSection(&symbolTable);
     dataSection = initDataSection();
 
@@ -81,14 +81,19 @@ int main(int argc, char** argv) {
     }
 
     printSymbolTable(&symbolTable);
-/*
+
     printCodeSection(codeSection);
 
     printDataSection(dataSection);
-*/
+/*
     writeEntriesToFile(getEntriesFileName(sourceFileName), &symbolTable);
     
     writeExternalsToFile(getExternalsFileName(sourceFileName), codeSection);
+*/
+    
+    printEntries(&symbolTable);
+    
+    printExternalSymbols(codeSection);
     
     exitCode = EXIT_SUCCESS;
 
@@ -144,15 +149,11 @@ void writeEntriesToFile(char *fileName, SymbolTablePtr table)
         return;
     }
     
-    writeEntries(file, table);
+    writeEntries(table, file);
     
     fclose(file);
 }
 
-void writeExternalSymbol(ListNodeDataPtr nodeData, void *context)
-{
-    printf("%s\t%o\n", nodeData->symbolLocation->symbol, nodeData->symbolLocation->location.value);
-}
 
 void writeExternalsToFile(char *fileName, CodeSection *codeSection)
 {
@@ -166,7 +167,7 @@ void writeExternalsToFile(char *fileName, CodeSection *codeSection)
         return;
     }
     
-    actOnList(&codeSection->externalSymbols, writeExternalSymbol, NULL);
+    writeExternalSymbols(codeSection, file);
     
     fclose(file);
 }

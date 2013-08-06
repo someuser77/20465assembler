@@ -13,7 +13,8 @@
 
 typedef struct 
 {
-    Memory *memory;    
+    Memory *memory;
+    Word dataBaseAddress;
 } DataSection;
 
 #define DATA_PARSE_ERROR -2
@@ -23,6 +24,7 @@ DataSection *initDataSection();
 void freeDataSection(DataSection *dataSection);
 int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine);
 int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine);
+void writeDataSection(DataSection *dataSection, FILE *file);
 void printDataSection(DataSection *dataSection);
 #endif	/* DATA_H */
 

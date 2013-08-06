@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "parser.h"
 #include "memory.h"
+#include "consts.h"
 
 DataSection *initDataSection()
 {
@@ -13,6 +14,8 @@ DataSection *initDataSection()
    dataSection = (DataSection *)malloc(sizeof(DataSection));
    
    dataSection->memory = initMemory();
+   
+   dataSection->dataBaseAddress.value = BASE_ADDRESS;
    
    return dataSection;
 }
@@ -151,9 +154,26 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
     return pos;
 }
 
+void writeDataSection(DataSection *dataSection, FILE *file)
+{
+    Memory *memory = dataSection->memory;
+    int i;
+    
+    for (i = 0; i < memory->position; i++)
+    {
+        fprintf(file, "%o\t", i + dataSection->dataBaseAddress.value);
+        
+        printWord(memory->buffer[i], file, OUTPUT_BASE);
+        
+        fprintf(file, "\n");
+    }
+}
+
 void printDataSection(DataSection *dataSection)
 {
     printf("\n\n === DATA SECTION: === \n\n");
     
-    printMemory(dataSection->memory);
+    writeDataSection(dataSection, stdout);
+    
+    printf("\n");
 }

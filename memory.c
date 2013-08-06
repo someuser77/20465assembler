@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
 #include "types.h"
 #include "memory.h"
 
@@ -23,26 +25,51 @@ int writeInt(Memory *memory, int value)
     return writeWord(memory, word);
 }
 
-void printWord(Word word)
+void printWord(Word word, FILE *target, int base)
 {
-    int i;
-    int value;
+    static char base_digits[16] =
+	 {'0', '1', '2', '3', '4', '5', '6', '7',
+	  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+    int position;
+    char *value;
     
-    for (i = MACHINE_WORD_LENGTH - 1; i >= 0; i--)
+    double maxValueBase2 = pow(2, MACHINE_WORD_LENGTH);
+    double base10nominator = log10(maxValueBase2);
+    double base10denominator = log10(base);
+    /* calculate log in base's base. */
+    int digits = ceil(base10nominator / base10denominator);
+    unsigned long unsignedValue;
+    
+    if (word.value < 0) unsignedValue = maxValueBase2 + word.value;
+    else unsignedValue = word.value;
+    
+    value = (char *)malloc(sizeof(char) * (digits + 1));
+
+    memset(value, '0', digits + 1);
+    
+    position = digits - 1;
+    
+    while (unsignedValue != 0)
     {
-        value = (word.value & (1 << i)) == (1 << i);
-        printf("%d", value);
+        value[position] = base_digits[unsignedValue % base];
+        unsignedValue = unsignedValue / base;
+        position--;
     }
+    
+    value[digits] = EOL;
+    
+    fprintf(target, "%s", value);
+    
+    free(value);
 }
 
-void printMemory(Memory *memory)
+void printMemory(Memory *memory, FILE *target, int base)
 {
     int i;
     for (i = 0; i < memory->position; i++)
     {
-        printf("%d:\t", i);
-        printWord(memory->buffer[i]);
-        printf("\n\n");
+        printWord(memory->buffer[i], target, base);
     }
 }
 

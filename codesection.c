@@ -295,11 +295,11 @@ void writeCodeSection(CodeSection *codeSection, FILE *file)
     
     for (i = 0; i < memory->position; i++)
     {
-        fprintf(file, "%o:\t", i + codeSection->codeBaseAddress.value);
+        fprintf(file, "%o\t", i + codeSection->codeBaseAddress.value);
         
-        printWord(memory->buffer[i]);
+        printWord(memory->buffer[i], file, OUTPUT_BASE);
         
-        fprintf(file, " %c", getMemoryTypeSymbol(codeSection->memoryType[i]));
+        fprintf(file, "\t%c", getMemoryTypeSymbol(codeSection->memoryType[i]));
         
         fprintf(file, "\n");
     }
@@ -312,25 +312,6 @@ void printCodeSection(CodeSection *codeSection)
     writeCodeSection(codeSection, stdout);
     
     printf("\n");
-}
-
-void printCodeSectionBinary(CodeSection *codeSection)
-{
-    Memory *memory = codeSection->memory;
-    int i;
-    
-    printf("\n\n === CODE SECTION: === \n\n");
-    
-    for (i = 0; i < memory->position; i++)
-    {
-        printf("%d:\t", i);
-        
-        printWord(memory->buffer[i]);
-        
-        printf(" %c", getMemoryTypeSymbol(codeSection->memoryType[i]));
-        
-        printf("\n\n");
-    }
 }
 
 Word getAbsoluteInstructionCounter(CodeSection *codeSection)
@@ -377,8 +358,3 @@ void printExternalSymbols(CodeSection *codeSection)
     
     writeExternalSymbols(codeSection, stdout);
 }
-
-
-
-
-

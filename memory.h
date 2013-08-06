@@ -8,6 +8,7 @@
 #ifndef MEMORY_H
 #define	MEMORY_H
 
+#include <stdio.h>
 #include "consts.h"
 #include "types.h"
 
@@ -24,7 +25,11 @@ Memory *initMemory();
 void freeMemory(Memory *memory);
 int writeInt(Memory *memory, int value);
 int writeWord(Memory *memory, Word value);
-void printMemory(Memory *memory);
-void printWord(Word word);
+
+/* prints the entire Memory to target in the specified base (2, 8, 10, 16) */
+void printMemory(Memory *memory, FILE *target, int base);
+
+/* prints a Word to target in the specified base (2, 8, 10, 16) */
+void printWord(Word word, FILE *target, int base);
 #endif	/* MEMORY_H */
 
