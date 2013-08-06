@@ -32,11 +32,11 @@ int main(int argc, char** argv) {
     int instructionCounter;
 
     SymbolTable symbolTable;
-    DataSection *dataSection;
-    CodeSection *codeSection;
+    DataSection *dataSection = NULL;
+    CodeSection *codeSection = NULL;
     InstructionQueue instructionQueue;
 
-    int exitCode;
+    int exitCode = EXIT_SUCCESS;
     /*
     printWord(-5, stdout, 8);
     return 0; */
@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     if (sourceFile == NULL) 
     {
         fprintf(stderr, "Unable to open file %s.", sourceFileName);
+        exitCode = EXIT_FAILURE;
         goto cleanup;
     }
 
@@ -106,11 +107,18 @@ int main(int argc, char** argv) {
     
     printExternalSymbols(codeSection);
 */    
-    exitCode = EXIT_SUCCESS;
 
 cleanup:
-    freeCodeSection(codeSection);
-    freeDataSection(dataSection);
+    if (codeSection != NULL)
+    {
+        freeCodeSection(codeSection);
+    }
+
+    if (dataSection != NULL)
+    {
+        freeDataSection(dataSection);
+    }
+
     if (sourceFile != NULL)
     {
         fclose(sourceFile);
