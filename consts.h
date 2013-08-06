@@ -70,6 +70,8 @@
 
 #define EXTERNALS_FILE_EXTENSION ".ext"
 
+#define OBJECT_FILE_NAME ".ob"
+
 #define OUTPUT_BASE 8
 
 /* turns on debug output */

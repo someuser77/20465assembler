@@ -18,12 +18,14 @@
 char *getEntriesFileName(char *sourceFileName);
 char *getSourceFileName(char *sourceFileName);
 char *getExternalsFileName(char* sourceFileName);
+char *getObjectFileName(char* sourceFileName);
 void writeEntriesToFile(char *fileName, SymbolTablePtr table);
 void writeExternalsToFile(char *fileName, CodeSection *codeSection);
+void writeObjectFile(char *fileName, CodeSection *codeSection, DataSection *dataSection);
 
 int main(int argc, char** argv) {
 
-    FILE *sourceFile;
+    FILE *sourceFile = NULL;
     char *sourceFileName = "ps";
 
     int ferrorCode;
@@ -35,17 +37,21 @@ int main(int argc, char** argv) {
     InstructionQueue instructionQueue;
 
     int exitCode;
+    /*
+    printWord(-5, stdout, 8);
+    return 0; */
     
-    codeSection = initCodeSection(&symbolTable);
-    dataSection = initDataSection();
-
     sourceFile = fopen(getSourceFileName(sourceFileName), "r");
 
     if (sourceFile == NULL) 
     {
-        fprintf(stderr, "Error opening file %s.", sourceFileName);
-        exit(1);
+        fprintf(stderr, "Unable to open file %s.", sourceFileName);
+        goto cleanup;
     }
+
+    codeSection = initCodeSection(&symbolTable);
+    
+    dataSection = initDataSection();
 
     symbolTable = initSymbolTable();
 
@@ -80,27 +86,35 @@ int main(int argc, char** argv) {
         goto cleanup;
     }
 
-    printSymbolTable(&symbolTable);
-
+    /* printSymbolTable(&symbolTable); */
+    
+    
+/*
     printCodeSection(codeSection);
 
     printDataSection(dataSection);
-/*
+*/  
+    
+
+    writeObjectFile(getObjectFileName(sourceFileName), codeSection, dataSection);
+    
     writeEntriesToFile(getEntriesFileName(sourceFileName), &symbolTable);
     
     writeExternalsToFile(getExternalsFileName(sourceFileName), codeSection);
-*/
-    
+/*    
     printEntries(&symbolTable);
     
     printExternalSymbols(codeSection);
-    
+*/    
     exitCode = EXIT_SUCCESS;
 
 cleanup:
     freeCodeSection(codeSection);
     freeDataSection(dataSection);
-    fclose(sourceFile);
+    if (sourceFile != NULL)
+    {
+        fclose(sourceFile);
+    }
 
     return exitCode;
 }
@@ -168,6 +182,32 @@ void writeExternalsToFile(char *fileName, CodeSection *codeSection)
     }
     
     writeExternalSymbols(codeSection, file);
+    
+    fclose(file);
+}
+
+char *getObjectFileName(char* sourceFileName)
+{
+    return appendExtensionToFileName(sourceFileName, OBJECT_FILE_NAME);
+}
+
+void writeObjectFile(char *fileName, CodeSection *codeSection, DataSection *dataSection)
+{
+    FILE *file;
+    
+    file = fopen(fileName, "w");
+    
+    if (file == NULL)
+    {
+        logErrorFormat("Unable to create file %s.", fileName);
+        return;
+    }
+    
+    fprintf(file, "%lo\t%lo\n", getCodeSectionSize(codeSection), getDataSectionSize(dataSection));
+    
+    writeCodeSection(codeSection, file);
+    
+    writeDataSection(dataSection, file);
     
     fclose(file);
 }

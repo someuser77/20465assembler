@@ -159,7 +159,7 @@ void writeDataSection(DataSection *dataSection, FILE *file)
     Memory *memory = dataSection->memory;
     int i;
     
-    for (i = 0; i < memory->position; i++)
+    for (i = 0; i < getMemoryPosition(memory); i++)
     {
         fprintf(file, "%lo\t", i + dataSection->dataBaseAddress);
         
@@ -176,4 +176,9 @@ void printDataSection(DataSection *dataSection)
     writeDataSection(dataSection, stdout);
     
     printf("\n");
+}
+
+Word getDataSectionSize(DataSection *dataSection)
+{
+    return getMemoryPosition(dataSection->memory);
 }

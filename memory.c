@@ -5,7 +5,7 @@
 #include "types.h"
 #include "memory.h"
 
-int writeWord(Memory *memory, Word value)
+Word writeWord(Memory *memory, Word value)
 {
     if (memory->position == MAX_MEMORY_SIZE)
     {
@@ -18,7 +18,7 @@ int writeWord(Memory *memory, Word value)
     return memory->position;
 }
 
-int writeInt(Memory *memory, int value)
+Word writeInt(Memory *memory, int value)
 {
     Word word = value;
     return writeWord(memory, word);
@@ -33,7 +33,7 @@ void printWord(Word word, FILE *target, int base)
     int position;
     char *value;
     
-    double maxValueBase2 = pow(2, MACHINE_WORD_LENGTH);
+    double maxValueBase2 = pow(2, MACHINE_WORD_LENGTH + 1);
     double base10nominator = log10(maxValueBase2);
     double base10denominator = log10(base);
     /* calculate log in base's base. */
@@ -45,6 +45,10 @@ void printWord(Word word, FILE *target, int base)
     
     value = (char *)malloc(sizeof(char) * (digits + 1));
 
+    sprintf(value, "%7.0lo", word);
+    
+    return;
+    
     memset(value, '0', digits + 1);
     
     position = digits - 1;
@@ -91,4 +95,9 @@ Memory *initMemory()
 void freeMemory(Memory *memory)
 {
     free(memory);
+}
+
+Word getMemoryPosition(Memory *memory)
+{
+    return memory->position;    
 }

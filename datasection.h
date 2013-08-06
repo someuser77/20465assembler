@@ -26,5 +26,6 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine);
 int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine);
 void writeDataSection(DataSection *dataSection, FILE *file);
 void printDataSection(DataSection *dataSection);
+Word getDataSectionSize(DataSection *dataSection);
 #endif	/* DATA_H */
 

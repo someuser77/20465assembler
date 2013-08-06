@@ -33,5 +33,7 @@ Word getRelativeInstructionCounter(CodeSection *codeSection);
 void fixDataOffset(CodeSection *codeSection, int offset);
 void writeExternalSymbols(CodeSection *codeSection, FILE *file);
 void printExternalSymbols(CodeSection *codeSection);
+Word getCodeSectionSize(CodeSection *codeSection);
+void writeCodeSection(CodeSection *codeSection, FILE *file);
 #endif	/* CODE_H */
 

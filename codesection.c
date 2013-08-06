@@ -358,3 +358,8 @@ void printExternalSymbols(CodeSection *codeSection)
     
     writeExternalSymbols(codeSection, stdout);
 }
+
+Word getCodeSectionSize(CodeSection *codeSection)
+{
+    return getMemoryPosition(codeSection->memory);
+}

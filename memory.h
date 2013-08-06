@@ -18,14 +18,14 @@
 typedef struct tMemory
 {
     Word buffer[MAX_MEMORY_SIZE];
-    int position;
+    Word position;
 } Memory;
 
 Memory *initMemory();
 void freeMemory(Memory *memory);
-int writeInt(Memory *memory, int value);
-int writeWord(Memory *memory, Word value);
-
+Word writeInt(Memory *memory, int value);
+Word writeWord(Memory *memory, Word value);
+Word getMemoryPosition(Memory *memory);
 /* prints the entire Memory to target in the specified base (2, 8, 10, 16) */
 void printMemory(Memory *memory, FILE *target, int base);
 
