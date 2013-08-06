@@ -9,6 +9,7 @@ List initList(NodeType listType)
     list.head = NULL;
     list.last = NULL;
     list.listType = listType;
+    list.length = 0;
     return list;
 }
 
@@ -53,6 +54,8 @@ ListNodePtr insertNode(ListPtr list, ListNodeDataPtr data, NodeType nodeType)
     }
     
     list->last = node;
+        
+    list->length++;
     
     return node;    
 }
@@ -106,3 +109,7 @@ void actOnList(ListPtr list, void (*action)(ListNodeDataPtr nodeData, void *cont
     }
 }
 
+int getListLength(ListPtr list)
+{
+    return list->length;
+}

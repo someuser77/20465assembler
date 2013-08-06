@@ -35,5 +35,6 @@ void writeExternalSymbols(CodeSection *codeSection, FILE *file);
 void printExternalSymbols(CodeSection *codeSection);
 Word getCodeSectionSize(CodeSection *codeSection);
 void writeCodeSection(CodeSection *codeSection, FILE *file);
+int getNumberOfExternalSymbols(CodeSection *codeSection);
 #endif	/* CODE_H */
 

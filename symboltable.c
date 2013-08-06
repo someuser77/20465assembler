@@ -9,6 +9,7 @@ SymbolTable initSymbolTable()
 {
     SymbolTable table;
     table.list = initList(NodeType_Symbol);
+    table.entries = 0;
     return table;
 }
 
@@ -98,4 +99,26 @@ void printEntries(SymbolTablePtr symbolTable)
     printf("\n\n === ENTRIES === \n\n");
     
     writeEntries(symbolTable, stdout);
+}
+
+int getNumberOfEntries(SymbolTablePtr symbolTable)
+{
+    return symbolTable->entries;
+}
+
+SymbolPtr markEntry(SymbolTablePtr table, char *symbol)
+{
+    SymbolPtr entry;
+    
+    entry = findSymbol(table, symbol);
+    
+    if (symbol == NULL)
+    {
+        return NULL;
+    }
+    
+    entry->entry = True;
+    table->entries++;
+    
+    return entry;
 }

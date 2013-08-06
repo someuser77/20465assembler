@@ -363,3 +363,8 @@ Word getCodeSectionSize(CodeSection *codeSection)
 {
     return getMemoryPosition(codeSection->memory);
 }
+
+int getNumberOfExternalSymbols(CodeSection *codeSection)
+{
+    return getListLength(&codeSection->externalSymbols);
+}

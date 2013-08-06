@@ -26,8 +26,8 @@ void writeObjectFile(char *fileName, CodeSection *codeSection, DataSection *data
 int main(int argc, char** argv) {
 
     FILE *sourceFile = NULL;
-    char *sourceFileName = "ps";
-
+    char *sourceBaseFileName = NULL;
+    char *sourceFullFileName = NULL;
     int ferrorCode;
     int instructionCounter;
 
@@ -37,93 +37,115 @@ int main(int argc, char** argv) {
     InstructionQueue instructionQueue;
 
     int exitCode = EXIT_SUCCESS;
+    int i;
+    
     /*
     printWord(-5, stdout, 8);
     return 0; */
     
-    sourceFile = fopen(getSourceFileName(sourceFileName), "r");
-
-    if (sourceFile == NULL) 
+    if (argc == 1)
     {
-        fprintf(stderr, "Unable to open file %s.", sourceFileName);
-        exitCode = EXIT_FAILURE;
-        goto cleanup;
+        printf("Usage: %s file1 file2 file3 ...\n", argv[0]);
+        return EXIT_FAILURE;
     }
-
-    codeSection = initCodeSection(&symbolTable);
     
-    dataSection = initDataSection();
-
-    symbolTable = initSymbolTable();
-
-    instructionQueue = initInstructionQueue();
-
-    instructionCounter = firstPass(sourceFile, codeSection, &instructionQueue, dataSection, sourceFileName);
-
-    if (instructionCounter == -1) 
+    for (i = 1; i < argc; i++)
     {
-        exitCode = EXIT_FAILURE;
-        goto cleanup;
-    }
+        sourceBaseFileName = argv[i];
+        
+        sourceFullFileName = getSourceFileName(sourceBaseFileName);
+        
+        printf("Compiling %s...\n", sourceBaseFileName);
+        
+        sourceFile = fopen(sourceFullFileName, "r");
 
-    rewind(sourceFile);
+        if (sourceFile == NULL) 
+        {
+            fprintf(stderr, "Unable to open file %s.\n", sourceBaseFileName);
+            exitCode = EXIT_FAILURE;
+            goto cleanup;
+        }
 
-#ifdef DEBUG
-    printf("Shifting data by %d.\n", instructionCounter);
-#endif
+        codeSection = initCodeSection(&symbolTable);
 
-    fixDataOffset(codeSection, instructionCounter);
+        dataSection = initDataSection();
 
-    if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceFileName)) 
-    {
-        exitCode = EXIT_FAILURE;
-        goto cleanup;
-    }
+        symbolTable = initSymbolTable();
 
-    if ((ferrorCode = ferror(sourceFile))) 
-    {
-        fprintf(stderr, "Error reading from file %s %d.", sourceFileName, ferrorCode);
-        exitCode = EXIT_FAILURE;
-        goto cleanup;
-    }
+        instructionQueue = initInstructionQueue();
 
-    /* printSymbolTable(&symbolTable); */
+        instructionCounter = firstPass(sourceFile, codeSection, &instructionQueue, dataSection, sourceBaseFileName);
+
+        if (instructionCounter == -1) 
+        {
+            exitCode = EXIT_FAILURE;
+            goto cleanup;
+        }
+
+        rewind(sourceFile);
+
+    #ifdef DEBUG
+        printf("Shifting data by %d.\n", instructionCounter);
+    #endif
+
+        fixDataOffset(codeSection, instructionCounter);
+
+        if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceBaseFileName)) 
+        {
+            exitCode = EXIT_FAILURE;
+            goto cleanup;
+        }
+
+        if ((ferrorCode = ferror(sourceFile))) 
+        {
+            fprintf(stderr, "Error reading from file %s %d.", sourceBaseFileName, ferrorCode);
+            exitCode = EXIT_FAILURE;
+            goto cleanup;
+        }
+
+        /* printSymbolTable(&symbolTable); */
+
+
+    /*
+        printCodeSection(codeSection);
+
+        printDataSection(dataSection);
+    */  
+
+
+        writeObjectFile(getObjectFileName(sourceBaseFileName), codeSection, dataSection);
+
+        writeEntriesToFile(getEntriesFileName(sourceBaseFileName), &symbolTable);
+
+        writeExternalsToFile(getExternalsFileName(sourceBaseFileName), codeSection);
+    /*    
+        printEntries(&symbolTable);
+
+        printExternalSymbols(codeSection);
+    */    
+
+        printf("Done.\n");
+        
+    cleanup:
+        free(sourceFullFileName);
+        
+        if (codeSection != NULL)
+        {
+            freeCodeSection(codeSection);
+        }
+
+        if (dataSection != NULL)
+        {
+            freeDataSection(dataSection);
+        }
+
+        if (sourceFile != NULL)
+        {
+            fclose(sourceFile);
+        }
     
-    
-/*
-    printCodeSection(codeSection);
-
-    printDataSection(dataSection);
-*/  
-    
-
-    writeObjectFile(getObjectFileName(sourceFileName), codeSection, dataSection);
-    
-    writeEntriesToFile(getEntriesFileName(sourceFileName), &symbolTable);
-    
-    writeExternalsToFile(getExternalsFileName(sourceFileName), codeSection);
-/*    
-    printEntries(&symbolTable);
-    
-    printExternalSymbols(codeSection);
-*/    
-
-cleanup:
-    if (codeSection != NULL)
-    {
-        freeCodeSection(codeSection);
+        freeInstructionTable(&instructionQueue);
     }
-
-    if (dataSection != NULL)
-    {
-        freeDataSection(dataSection);
-    }
-
-    if (sourceFile != NULL)
-    {
-        fclose(sourceFile);
-    }
-
     return exitCode;
 }
 
@@ -163,35 +185,41 @@ void writeEntriesToFile(char *fileName, SymbolTablePtr table)
 {
     FILE *file;
     
-    file = fopen(fileName, "w");
-    
-    if (file == NULL)
+    if (getNumberOfEntries(table) > 0)
     {
-        logErrorFormat("Unable to create file %s.", fileName);
-        return;
+        file = fopen(fileName, "w");
+
+        if (file == NULL)
+        {
+            logErrorFormat("Unable to create file %s.", fileName);
+            return;
+        }
+
+        writeEntries(table, file);
+
+        fclose(file);
     }
-    
-    writeEntries(table, file);
-    
-    fclose(file);
 }
 
 
 void writeExternalsToFile(char *fileName, CodeSection *codeSection)
 {
     FILE *file;
-    
-    file = fopen(fileName, "w");
-    
-    if (file == NULL)
+
+    if (getNumberOfExternalSymbols(codeSection) > 0)
     {
-        logErrorFormat("Unable to create file %s.", fileName);
-        return;
+        file = fopen(fileName, "w");
+
+        if (file == NULL)
+        {
+            logErrorFormat("Unable to create file %s.", fileName);
+            return;
+        }
+
+        writeExternalSymbols(codeSection, file);
+
+        fclose(file);
     }
-    
-    writeExternalSymbols(codeSection, file);
-    
-    fclose(file);
 }
 
 char *getObjectFileName(char* sourceFileName)

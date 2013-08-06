@@ -14,6 +14,8 @@
 
 typedef struct {
     List list;
+    ListNodePtr nodeToIterate;
+    Boolean iterationIsDone;
 } InstructionQueue, *InstructionQueuePtr;
 
 InstructionQueue initInstructionQueue();

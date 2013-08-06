@@ -522,7 +522,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
         {
             readInstantAddressingOperand(sourceLine, operand);
 #ifdef DEBUG
-            printf("Found an instant address operand with the value of %d\n", operand->address.value);
+            printf("Found an instant address operand with the value of %ld\n", operand->address.value);
 #endif
             return sourceLine->error == NULL;
         }
@@ -566,7 +566,7 @@ Boolean readOperand(SourceLinePtr sourceLine, ValidOperandAddressing validAddres
                     printf("Found varying addressing operand %s with direct register %s.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.reg);
                     break;
                 case OperandVaryingAddressing_Instant:
-                    printf("Found varying addressing operand %s with offset %d.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.value);
+                    printf("Found varying addressing operand %s with offset %ld.\n", operand->address.varyingAddress.label, operand->address.varyingAddress.address.value);
                     break;
                 default:
                     printf("Unknown OperandVaryingAddressing value!\n");

@@ -154,16 +154,8 @@ SymbolPtr handleEntry(SourceLinePtr sourceLine, SymbolTablePtr symbolTable)
     
     label = cloneString(sourceLine->text, end - sourceLine->text);
     
-    symbol = findSymbol(symbolTable, label);
-    
-    /* yes, could be written as if/else but this way its more clear */
-    if (symbol == NULL)
-    {
-        return NULL;
-    }
-    
-    symbol->entry = True;
-    
+    symbol = markEntry(symbolTable, label);
+
     return symbol;
 }
 
@@ -247,7 +239,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                     case GuidanceType_Data:
 #ifdef DEBUG
                         printf("Found Data.\n");
-                        printf("Data Offset: %d\n", dataCounter.value);
+                        printf("Data Offset: %ld\n", dataCounter);
 #endif
                         if (label != NULL)
                         {
@@ -270,7 +262,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                     case GuidanceType_String:
 #ifdef DEBUG
                         printf("Found String.\n");
-                        printf("Data Offset: %d\n", dataCounter.value);
+                        printf("Data Offset: %ld\n", dataCounter);
 #endif
                         if (label != NULL)
                         {
@@ -349,7 +341,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
         
 #ifdef DEBUG
         printf("Instruction size in words: %d\n", instructionSize);
-        printf("Instruction Offset: %d\n", instructionCounter.value);
+        printf("Instruction Offset: %ld\n", instructionCounter);
 #endif
         
         instructionCounter += instructionSize;
@@ -363,7 +355,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
     }
     
 #ifdef DEBUG
-    printf("\nNext slot after last instruction: %d\n", instructionCounter.value);
+    printf("\nNext slot after last instruction: %ld\n", instructionCounter);
 #endif
 end:    
     return successfulPass ? instructionCounter : -1;
@@ -426,7 +418,7 @@ Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueueP
 #endif
                     if (handleEntry(sourceLine, symbolTable) == NULL)
                     {
-                        logErrorInLine(sourceLine, "Unable to find the label for the entry.");
+                            logErrorInLine(sourceLine, "Unable to find the label for the entry.");
                     }
                 }
             }

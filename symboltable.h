@@ -16,6 +16,7 @@
 
 typedef struct {
     List list;
+    int entries;
 } SymbolTable, *SymbolTablePtr;
 
 SymbolTable initSymbolTable();
@@ -25,4 +26,6 @@ void freeSymbolTable(SymbolTablePtr table);
 void printSymbolTable(SymbolTablePtr table);
 void writeEntries(SymbolTablePtr table, FILE *file);
 void printEntries(SymbolTablePtr symbolTable);
+int getNumberOfEntries(SymbolTablePtr symbolTable);
+SymbolPtr markEntry(SymbolTablePtr table, char *symbol);
 #endif	/* SYMBOLTABLE_H */

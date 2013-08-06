@@ -29,6 +29,7 @@ typedef struct tList{
     NodeType listType;
     ListNode *head;
     ListNode *last;
+    int length;
 } List, *ListPtr;
 
 
@@ -37,5 +38,6 @@ ListNodePtr insertNode(ListPtr list, ListNodeDataPtr data, NodeType nodeType);
 ListNodePtr findNode(ListPtr list, ListNodeDataPtr data, Boolean (*comparer)(ListNodeDataPtr a, ListNodeDataPtr b));
 void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData));
 void actOnList(ListPtr list, void (*action)(ListNodeDataPtr nodeData, void *context), void *context);
+int getListLength(ListPtr list);
 #endif	/* LIST_H */
 

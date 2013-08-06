@@ -2,11 +2,12 @@
 #include "list.h"
 #include "instructionqueue.h"
 
-
 InstructionQueue initInstructionQueue()
 {
     InstructionQueue queue;
     queue.list = initList(NodeType_Instruction);
+    queue.nodeToIterate = NULL;
+    queue.iterationIsDone = False;
     return queue;
 }
 
@@ -25,28 +26,25 @@ InstructionLayoutPtr insertInstruction(InstructionQueuePtr table, InstructionLay
 
 InstructionLayoutPtr getNextInstruction(InstructionQueuePtr table)
 {
-    static ListNodePtr node = NULL;
-    static Boolean done = False;
-    
     InstructionLayoutPtr result;
     
-    if (done) return NULL;
+    if (table->iterationIsDone) return NULL;
     
-    if (!done && node == NULL)
+    if (!table->iterationIsDone && table->nodeToIterate == NULL)
     {
-        node = table->list.head;
-        result = node->data->instruction;
-        node = node->next;
+        table->nodeToIterate = table->list.head;
+        result = table->nodeToIterate->data->instruction;
+        table->nodeToIterate = table->nodeToIterate->next;
         return result;
     }
     
-    result = node->data->instruction;
+    result = table->nodeToIterate->data->instruction;
     
-    node = node->next;
+    table->nodeToIterate = table->nodeToIterate->next;
     
-    if (node == NULL)
+    if (table->nodeToIterate == NULL)
     {
-        done = True;
+        table->iterationIsDone = True;
     }
     
     return result;
