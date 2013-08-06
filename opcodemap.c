@@ -280,7 +280,7 @@ void readInstantAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
     }
     
     operand->addressing =  OperandAddressing_Instant;
-    operand->address.value.value = value;
+    operand->address.value = value;
     operand->empty = False;
 }
 
@@ -412,7 +412,7 @@ void readVaryingAddressingOperand(SourceLinePtr sourceLine, OperandPtr operand)
     }
     
     operand->address.varyingAddress.adressing = OperandVaryingAddressing_Instant;
-    operand->address.varyingAddress.address.value.value = offset;
+    operand->address.varyingAddress.address.value = offset;
     
     
     

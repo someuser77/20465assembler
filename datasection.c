@@ -15,7 +15,7 @@ DataSection *initDataSection()
    
    dataSection->memory = initMemory();
    
-   dataSection->dataBaseAddress.value = BASE_ADDRESS;
+   dataSection->dataBaseAddress = BASE_ADDRESS;
    
    return dataSection;
 }
@@ -161,7 +161,7 @@ void writeDataSection(DataSection *dataSection, FILE *file)
     
     for (i = 0; i < memory->position; i++)
     {
-        fprintf(file, "%o\t", i + dataSection->dataBaseAddress.value);
+        fprintf(file, "%lo\t", i + dataSection->dataBaseAddress);
         
         printWord(memory->buffer[i], file, OUTPUT_BASE);
         

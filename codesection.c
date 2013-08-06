@@ -19,7 +19,7 @@ CodeSection *initCodeSection(SymbolTablePtr symbolTable)
     codeSection = (CodeSection *)malloc(sizeof(CodeSection));
     codeSection->symbolTable = symbolTable;
     codeSection->memory = initMemory();
-    codeSection->codeBaseAddress.value = BASE_ADDRESS;
+    codeSection->codeBaseAddress = BASE_ADDRESS;
     codeSection->memoryType = (MemoryType *)malloc(sizeof(MemoryType) * MAX_MEMORY_SIZE);
     codeSection->externalSymbols = initList(NodeType_SymbolLocation);
     
@@ -93,7 +93,7 @@ Boolean writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instruc
     
     symbolAddress = symbolPtr->value;
     
-    offset = symbolAddress.value - instructionAddress.value; 
+    offset = symbolAddress - instructionAddress; 
     
     setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);
     
@@ -127,9 +127,9 @@ Boolean writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr
     symbolAddress = symbolPtr->value;
     memoryType = MemoryType_Relocatable;
     
-    if (symbolAddress.value == EXTERN_SYMBOL_VALUE)
+    if (symbolAddress == EXTERN_SYMBOL_VALUE)
     {
-        symbolAddress.value = DEFAULT_EXTERNAL_SYMBOL_ADDRESS;
+        symbolAddress = DEFAULT_EXTERNAL_SYMBOL_ADDRESS;
         memoryType = MemoryType_External;
         
         dataPtr = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
@@ -295,7 +295,7 @@ void writeCodeSection(CodeSection *codeSection, FILE *file)
     
     for (i = 0; i < memory->position; i++)
     {
-        fprintf(file, "%o\t", i + codeSection->codeBaseAddress.value);
+        fprintf(file, "%lo\t", i + codeSection->codeBaseAddress);
         
         printWord(memory->buffer[i], file, OUTPUT_BASE);
         
@@ -317,14 +317,14 @@ void printCodeSection(CodeSection *codeSection)
 Word getAbsoluteInstructionCounter(CodeSection *codeSection)
 {
     Word word;
-    word.value = codeSection->memory->position + codeSection->codeBaseAddress.value;
+    word = codeSection->memory->position + codeSection->codeBaseAddress;
     return word;
 }
 
 Word getRelativeInstructionCounter(CodeSection *codeSection)
 {
     Word word; 
-    word.value = codeSection->memory->position;
+    word = codeSection->memory->position;
     return word;
 }
 
@@ -332,7 +332,7 @@ void fixDataOffsetForSymbolAddress(ListNodeDataPtr dataPtr, void *context)
 {
     if (dataPtr->symbol.symbolSection == SymbolSection_Data)
     {
-        dataPtr->symbol.value.value += *(int*)(context);
+        dataPtr->symbol.value += *(int*)(context);
     }
 }
 
@@ -344,7 +344,7 @@ void fixDataOffset(CodeSection *codeSection, int offset)
 
 void writeExternalSymbol(ListNodeDataPtr nodeData, void *context)
 {
-    fprintf((FILE*)context, "%s\t%o\n", nodeData->symbolLocation->symbol, nodeData->symbolLocation->location.value);
+    fprintf((FILE*)context, "%s\t%lo\n", nodeData->symbolLocation->symbol, nodeData->symbolLocation->location);
 }
 
 void writeExternalSymbols(CodeSection *codeSection, FILE *file)

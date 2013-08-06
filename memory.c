@@ -20,8 +20,7 @@ int writeWord(Memory *memory, Word value)
 
 int writeInt(Memory *memory, int value)
 {
-    Word word;
-    word.value = value;
+    Word word = value;
     return writeWord(memory, word);
 }
 
@@ -41,8 +40,8 @@ void printWord(Word word, FILE *target, int base)
     int digits = ceil(base10nominator / base10denominator);
     unsigned long unsignedValue;
     
-    if (word.value < 0) unsignedValue = maxValueBase2 + word.value;
-    else unsignedValue = word.value;
+    if (word < 0) unsignedValue = maxValueBase2 + word;
+    else unsignedValue = word;
     
     value = (char *)malloc(sizeof(char) * (digits + 1));
 
@@ -83,7 +82,7 @@ Memory *initMemory()
     
     for (i = 0; i < MAX_MEMORY_SIZE; i++)
     {
-        memory->buffer[i].value = 0;
+        memory->buffer[i] = 0;
     }
     
     return memory;

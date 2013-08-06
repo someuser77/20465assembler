@@ -51,11 +51,10 @@ typedef enum { OperandVaryingAddressing_Instant,
         OperandVaryingAddressing_Direct,  
         OperandVaryingAddressing_DirectRegister } OperandVaryingAddressing;        
 
-typedef struct tWord {
-   /* according to the specification int can be 16 or 32 bits and long is at at least 32 bits 
-    on the development machine int is 32 and long is 64 but its implementation dependant.  */
-  int value : 20;  
-} Word;
+/* according to the specification int can be 16 or 32 bits and long is at at least 32 bits 
+    but because we can't make a long bit field a macro is used instead 
+ */
+typedef long Word;
         
 /* The memory representation of an opcode in the target machine */
 typedef struct tOpcodeLayout {

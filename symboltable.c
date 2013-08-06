@@ -69,7 +69,7 @@ void freeSymbolTable(SymbolTablePtr table)
 
 void printSymbol(ListNodeDataPtr dataPtr, void *context)
 {
-    printf("%s\t%d\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value.value, dataPtr->symbol.value.value);
+    printf("%s\t%ld\t%lo\n", dataPtr->symbol.symbolName, dataPtr->symbol.value, dataPtr->symbol.value);
 }
 
 void printSymbolTable(SymbolTablePtr table)
@@ -84,7 +84,7 @@ void writeEntry(ListNodeDataPtr dataPtr, void *context)
     
     if (dataPtr->symbol.entry)
     {
-        fprintf(file, "%s\t%o\n", dataPtr->symbol.symbolName, dataPtr->symbol.value.value);
+        fprintf(file, "%s\t%lo\n", dataPtr->symbol.symbolName, dataPtr->symbol.value);
     }
 }
 

@@ -259,7 +259,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                                 }
                         }
                         
-                        if ((dataCounter.value = writeDataArray(dataSection, sourceLine)) < 0)
+                        if ((dataCounter = writeDataArray(dataSection, sourceLine)) < 0)
                         {
                             logError("Unable to write data array to memory.");
                             successfulPass = False;
@@ -282,7 +282,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                                 }
                         }
                         
-                        if ((dataCounter.value = writeDataString(dataSection, sourceLine)) < 0)
+                        if ((dataCounter = writeDataString(dataSection, sourceLine)) < 0)
                         {
                             logError("Unable to write string to memory.");
                             successfulPass = False;
@@ -352,7 +352,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
         printf("Instruction Offset: %d\n", instructionCounter.value);
 #endif
         
-        instructionCounter.value += instructionSize;
+        instructionCounter += instructionSize;
         
         if (sourceLine->error != NULL)
         {
@@ -366,7 +366,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
     printf("\nNext slot after last instruction: %d\n", instructionCounter.value);
 #endif
 end:    
-    return successfulPass ? instructionCounter.value : -1;
+    return successfulPass ? instructionCounter : -1;
 }
 
 Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr instructionQueue, char *sourceFileName)
