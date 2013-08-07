@@ -39,10 +39,6 @@ int main(int argc, char** argv) {
     int exitCode = EXIT_SUCCESS;
     int i;
     
-    /*
-    printWord(-5, stdout, 8);
-    return 0; */
-    
     if (argc == 1)
     {
         printf("Usage: %s file1 file2 file3 ...\n", argv[0]);
@@ -111,7 +107,8 @@ int main(int argc, char** argv) {
 
         printDataSection(dataSection);
     */  
-
+        
+        increaseDataSectionOffset(dataSection, getCodeSectionSize(codeSection));
 
         writeObjectFile(getObjectFileName(sourceBaseFileName), codeSection, dataSection);
 

@@ -31,5 +31,7 @@ void printMemory(Memory *memory, FILE *target, int base);
 
 /* prints a Word to target in the specified base (2, 8, 10, 16) */
 void printWord(Word word, FILE *target, int base);
+
+void printWordBase8WithBitPadding(Word word, FILE *target);
 #endif	/* MEMORY_H */
 

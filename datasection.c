@@ -163,7 +163,9 @@ void writeDataSection(DataSection *dataSection, FILE *file)
     {
         fprintf(file, "%lo\t", i + dataSection->dataBaseAddress);
         
-        printWord(memory->buffer[i], file, OUTPUT_BASE);
+        /* printWord(memory->buffer[i], file, OUTPUT_BASE); */
+        
+        printWordBase8WithBitPadding(memory->buffer[i], file);
         
         fprintf(file, "\n");
     }
@@ -181,4 +183,9 @@ void printDataSection(DataSection *dataSection)
 Word getDataSectionSize(DataSection *dataSection)
 {
     return getMemoryPosition(dataSection->memory);
+}
+
+void increaseDataSectionOffset(DataSection *dataSection, Word offset)
+{
+    dataSection->dataBaseAddress += offset;
 }

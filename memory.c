@@ -24,6 +24,37 @@ Word writeInt(Memory *memory, int value)
     return writeWord(memory, word);
 }
 
+void printWordBase8WithBitPadding(Word word, FILE *target)
+{
+    int i;
+    int mask = 7;
+    int twoMostSignificantBitsMask = 3 << (MACHINE_WORD_LENGTH - 1);
+    char *result;
+    int requiredChars = ceil(MACHINE_WORD_LENGTH / 3.0);
+    
+    result = (char *)malloc(sizeof(char) * (requiredChars + 1));
+    
+    for (i = 0; i < MACHINE_WORD_LENGTH; i += 3)
+    {
+        result[requiredChars - (i / 3) - 1] = (int)((word & (mask << i)) >> i) + '0';
+    }
+    
+    if ((word & twoMostSignificantBitsMask) == twoMostSignificantBitsMask)
+    {
+        result[0] = '7';
+    } 
+    else 
+    {
+        result[0] = (int)((word & twoMostSignificantBitsMask) >> (MACHINE_WORD_LENGTH - 1)) + '0';
+    }
+    
+    result[requiredChars] = EOL;
+    
+    fprintf(target, "%s", result);
+    
+    free(result);
+}
+
 void printWord(Word word, FILE *target, int base)
 {
     static char base_digits[16] =

@@ -297,7 +297,9 @@ void writeCodeSection(CodeSection *codeSection, FILE *file)
     {
         fprintf(file, "%lo\t", i + codeSection->codeBaseAddress);
         
-        printWord(memory->buffer[i], file, OUTPUT_BASE);
+        /* printWord(memory->buffer[i], file, OUTPUT_BASE); */
+        
+        printWordBase8WithBitPadding(memory->buffer[i], file);
         
         fprintf(file, "\t%c", getMemoryTypeSymbol(codeSection->memoryType[i]));
         

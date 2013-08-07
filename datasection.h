@@ -27,5 +27,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine);
 void writeDataSection(DataSection *dataSection, FILE *file);
 void printDataSection(DataSection *dataSection);
 Word getDataSectionSize(DataSection *dataSection);
+/* used to add the code section offset to the data. */
+void increaseDataSectionOffset(DataSection *dataSection, Word offset);
 #endif	/* DATA_H */
 
