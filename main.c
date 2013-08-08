@@ -175,7 +175,7 @@ void writeEntriesToFile(char *fileName, SymbolTablePtr table)
 
         if (file == NULL)
         {
-            logErrorFormat("Unable to create file %s.", fileName);
+            logError("Unable to create file %s.", fileName);
             return;
         }
 
@@ -196,7 +196,7 @@ void writeExternalsToFile(char *fileName, CodeSection *codeSection)
 
         if (file == NULL)
         {
-            logErrorFormat("Unable to create file %s.", fileName);
+            logError("Unable to create file %s.", fileName);
             return;
         }
 
@@ -219,7 +219,7 @@ void writeObjectFile(char *fileName, CodeSection *codeSection, DataSection *data
     
     if (file == NULL)
     {
-        logErrorFormat("Unable to create file %s.", fileName);
+        logError("Unable to create file %s.", fileName);
         return;
     }
     

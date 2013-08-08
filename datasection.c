@@ -62,7 +62,7 @@ int writeDataArray(DataSection *dataSection, SourceLinePtr sourceLine)
 
         if (*sourceLine->text != EOL && *sourceLine->text != DATA_GUIDANCE_SEPARATOR)
         {
-            logErrorInLineFormat(sourceLine, "Missing separator '%c' after parsed value '%d'.", DATA_GUIDANCE_SEPARATOR, num);
+            logErrorInLine(sourceLine, "Missing separator '%c' after parsed value '%d'.", DATA_GUIDANCE_SEPARATOR, num);
             result = DATA_PARSE_ERROR;
             break;
         }

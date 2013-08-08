@@ -44,7 +44,7 @@ int getRegisterId(char registerString[REGISTER_NAME_LENGTH + 1])
     
     if (REGISTER_DIGIT_INDEX > REGISTER_NAME_LENGTH - 1)
     {
-        logErrorFormat("Error extracting register digit: the digit position %d is longer than the register name %d.", REGISTER_DIGIT_INDEX, (REGISTER_NAME_LENGTH + 1));
+        logError("Error extracting register digit: the digit position %d is longer than the register name %d.", REGISTER_DIGIT_INDEX, (REGISTER_NAME_LENGTH + 1));
         return -1;
     }
     
@@ -81,13 +81,13 @@ Boolean writeOffsetToSymbol(CodeSection *codeSection, char *symbol, Word instruc
     
     if (symbolPtr == NULL)
     {
-        logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
+        logErrorInLine(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
         return False;
     }
     
     if (symbolPtr->symbolSection == EXTERN_SYMBOL_VALUE)
     {
-        logErrorInLineFormat(sourceLine, "Unable to calculate offset to an external symbol '%s'.\n", symbol);
+        logErrorInLine(sourceLine, "Unable to calculate offset to an external symbol '%s'.\n", symbol);
         return False;
     }
     
@@ -120,7 +120,7 @@ Boolean writeSymbolAddress(CodeSection *codeSection, char *symbol, SourceLinePtr
     
     if (symbolPtr == NULL)
     {
-        logErrorInLineFormat(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
+        logErrorInLine(sourceLine, "Unable to find symbol '%s' in symbol table.\n", symbol);
         return False;
     }
     

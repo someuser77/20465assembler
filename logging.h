@@ -11,10 +11,8 @@
 #include "types.h"
 
 /* set of utility function to centralize the message output */
-void logError(char *error);
-void logErrorFormat(char *error, ...);
-void logErrorInLine(SourceLinePtr line, char *error);
-void logErrorInLineFormat(SourceLinePtr line, char *error, ...);
+void logError(char *error, ...);
+void logErrorInLine(SourceLinePtr line, char *error, ...);
 
 
 

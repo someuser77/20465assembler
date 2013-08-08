@@ -245,7 +245,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                         {
                                 if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
-                                    logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
+                                    logErrorInLine(sourceLine, "Found duplicate label: %s", label);
                                     successfulPass = False;
                                     goto end;
                                 }
@@ -268,7 +268,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
                         {
                                 if (insertSymbol(symbolTable, label, SymbolSection_Data, dataCounter) == NULL)
                                 {
-                                    logErrorInLineFormat(sourceLine, "Found duplicate label: %s", label);
+                                    logErrorInLine(sourceLine, "Found duplicate label: %s", label);
                                     successfulPass = False;
                                     goto end;
                                 }
@@ -309,7 +309,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
         if (!tryReadOpcode(sourceLine, &opcode))
         {
             opcodeToken = getOpcodeNameToken(sourceLine);
-            logErrorInLineFormat(sourceLine, "Unrecognized opcode '%s'.", opcodeToken);
+            logErrorInLine(sourceLine, "Unrecognized opcode '%s'.", opcodeToken);
             free(opcodeToken);
             successfulPass = False;
             continue;
@@ -317,7 +317,7 @@ int firstPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueuePtr in
         
         if (*sourceLine->text != OPCODE_CONTROL_PARAMETER_SEPARATOR)
         {
-            logErrorInLineFormat(sourceLine, "Missing separator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
+            logErrorInLine(sourceLine, "Missing separator '%c' after opcode", OPCODE_CONTROL_PARAMETER_SEPARATOR);
             successfulPass = False;
             continue;
         }
@@ -437,7 +437,7 @@ Boolean secondPass(FILE *sourceFile, CodeSection *codeSection, InstructionQueueP
         
         if (writeInstruction(codeSection, instructionLayout, sourceLine) == -1)
         {
-            logErrorInLineFormat(sourceLine, "Error writing instruction %s.", getOpcodeName(instructionLayout->opcode.opcode));
+            logErrorInLine(sourceLine, "Error writing instruction %s.", getOpcodeName(instructionLayout->opcode.opcode));
             return False;
         }
         
@@ -552,7 +552,7 @@ Boolean isValidLabel(SourceLine *sourceLine, char *labelStart, char *labelEnd)
     
     if (length > MAX_LABEL_LENGTH)
     {
-        logErrorInLineFormat(sourceLine, "Label must be %d chars or less", MAX_LABEL_LENGTH);
+        logErrorInLine(sourceLine, "Label must be %d chars or less", MAX_LABEL_LENGTH);
         valid = False;
     }
     

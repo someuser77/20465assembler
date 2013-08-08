@@ -4,7 +4,7 @@
 #include "types.h"
 #include "logging.h"
 
-void logErrorInLineFormat(SourceLinePtr line, char *error, ...)
+void logErrorInLine(SourceLinePtr line, char *error, ...)
 {
     va_list ap;
     
@@ -22,20 +22,10 @@ void logErrorInLineFormat(SourceLinePtr line, char *error, ...)
     fprintf(stderr, "\n");
 }
 
-void logErrorInLine(SourceLinePtr line, char *error)
-{
-    logErrorInLineFormat(line, error);
-}
-
-void logErrorFormat(char *error, ...)
+void logError(char *error, ...)
 {
     va_list ap;
     va_start(ap, error);
     vfprintf(stderr, error, ap);
     va_end(ap);
-}
-
-void logError(char *error)
-{
-    logErrorFormat(error);
 }

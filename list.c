@@ -37,7 +37,7 @@ ListNodePtr insertNode(ListPtr list, ListNodeDataPtr data, NodeType nodeType)
     
     if (nodeType != list->listType)
     {
-        logErrorFormat("Attempted to insert node of type %s into list of type %s", getNodeTypeName(nodeType), getNodeTypeName(list->listType));
+        logError("Attempted to insert node of type %s into list of type %s", getNodeTypeName(nodeType), getNodeTypeName(list->listType));
         return NULL;
     }
     
