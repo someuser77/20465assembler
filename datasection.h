@@ -11,9 +11,12 @@
 #include "types.h"
 #include "memory.h"
 
+/* represents the Data Section of the code */
 typedef struct 
 {
+    /* the underlying memory buffer */
     Memory *memory;
+    /* the base offset of the data */
     Word dataBaseAddress;
 } DataSection;
 

@@ -52,7 +52,7 @@ typedef enum { OperandVaryingAddressing_Instant,
         OperandVaryingAddressing_DirectRegister } OperandVaryingAddressing;        
 
 /* according to the specification int can be 16 or 32 bits and long is at at least 32 bits 
-    but because we can't make a long bit field a macro is used instead 
+    but because we can't make a long bit field a typedef is used instead 
  */
 typedef long Word;
         

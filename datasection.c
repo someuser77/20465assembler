@@ -142,7 +142,7 @@ int writeDataString(DataSection *dataSection, SourceLinePtr sourceLine)
         sourceLine->text++;
     }
     
-    pos = writeInt(dataSection->memory, 0);
+    pos = writeInt(dataSection->memory, EOL);
     if (pos == MEMORY_OUT_OF_MEMORY)
     {
         logErrorInLine(sourceLine, "Unable to write string, Out of memory.");

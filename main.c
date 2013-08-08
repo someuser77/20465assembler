@@ -98,15 +98,6 @@ int main(int argc, char** argv) {
             exitCode = EXIT_FAILURE;
             goto cleanup;
         }
-
-        /* printSymbolTable(&symbolTable); */
-
-
-    /*
-        printCodeSection(codeSection);
-
-        printDataSection(dataSection);
-    */  
         
         increaseDataSectionOffset(dataSection, getCodeSectionSize(codeSection));
 
@@ -115,11 +106,6 @@ int main(int argc, char** argv) {
         writeEntriesToFile(getEntriesFileName(sourceBaseFileName), &symbolTable);
 
         writeExternalsToFile(getExternalsFileName(sourceBaseFileName), codeSection);
-    /*    
-        printEntries(&symbolTable);
-
-        printExternalSymbols(codeSection);
-    */    
 
         printf("Done.\n");
         
@@ -143,6 +129,7 @@ int main(int argc, char** argv) {
     
         freeInstructionTable(&instructionQueue);
     }
+    
     return exitCode;
 }
 

@@ -33,7 +33,7 @@ CodeSection *initCodeSection(SymbolTablePtr symbolTable)
 
 void freeCodeSection(CodeSection *codeSection)
 {
-    free(codeSection->memory);
+    freeMemory(codeSection->memory);
     free(codeSection->memoryType);
     free(codeSection);
 }
@@ -181,7 +181,8 @@ Boolean writeOperandWithDirectAddressing(CodeSection *codeSection, OperandPtr op
 
 Boolean writeOperandWithDirectRegisterAddressing(CodeSection *codeSection, OperandPtr operand, SourceLinePtr sourceLine)
 {
-    /* just a place holder */
+    /* just a place holder for the handler, the register values were set earlier 
+     by using his stub we don't need to add a special condition to writeInstruction */
     return True;
 }
 
@@ -208,7 +209,8 @@ void setRegisterAddressing(InstructionLayoutPtr instruction)
 {
     int registerId;
     
-    /* can't be functioned out because there is no way to tell if its the source or the target*/
+    /* can't be functioned out because there is no way to tell if its the source or the target */
+    /* the register id is valid because we checked it already when parsing */
     
     if (instruction->leftOperand.addressing == OperandAddressing_DirectRegister)
     {
@@ -254,6 +256,7 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     
     setRegisterAddressing(instruction);
     
+    /* copy the opcode as a Word */
     memcpy(&word, &instruction->opcode, sizeof(OpcodeLayout));
     
     setCurrentMemoryLocationType(codeSection, MemoryType_Absolute);

@@ -13,6 +13,7 @@ List initList(NodeType listType)
     return list;
 }
 
+/* utility function to print a type of the node */
 char *getNodeTypeName(NodeType nodeType)
 {
     static char **listTypeNames;
@@ -20,9 +21,10 @@ char *getNodeTypeName(NodeType nodeType)
     
     if (!initialized)
     {
-        listTypeNames = (char **)malloc(sizeof(char *) * 2);
+        listTypeNames = (char **)malloc(sizeof(char *) * 3);
         listTypeNames[NodeType_Symbol] = "Symbol";
         listTypeNames[NodeType_Instruction] = "Instruction";
+        listTypeNames[NodeType_SymbolLocation] = "SymbolLocation";
         initialized = True;
     }
     
@@ -81,6 +83,8 @@ void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData))
 {
     ListNodePtr node = list->head;
     ListNodePtr next = node;
+    
+    /* because the node are freed we cant use 'actOnList' */
     
     while (node != NULL)
     {
