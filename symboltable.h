@@ -14,8 +14,12 @@
 
 #define EXTERN_SYMBOL_VALUE -1
 
+/* representation of the found symbols, allows to search for them. */
+
 typedef struct {
+    /* the list of symbols */
     List list;
+    /* the number of symbols that are entries */
     int entries;
 } SymbolTable, *SymbolTablePtr;
 
@@ -27,5 +31,6 @@ void printSymbolTable(SymbolTablePtr table);
 void writeEntries(SymbolTablePtr table, FILE *file);
 void printEntries(SymbolTablePtr symbolTable);
 int getNumberOfEntries(SymbolTablePtr symbolTable);
+/* marks the given symbol as a entry in the symbol table */
 SymbolPtr markEntry(SymbolTablePtr table, char *symbol);
 #endif	/* SYMBOLTABLE_H */

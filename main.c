@@ -84,6 +84,8 @@ int main(int argc, char** argv) {
         printf("Shifting data by %d.\n", instructionCounter);
     #endif
 
+        /* adjusts the addresses of symbols in the data section to represent the 
+         * expected offset considering the code size */
         fixDataOffset(codeSection, instructionCounter);
 
         if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceBaseFileName)) 

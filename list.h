@@ -47,7 +47,7 @@ ListNodePtr insertNode(ListPtr list, ListNodeDataPtr data, NodeType nodeType);
 ListNodePtr findNode(ListPtr list, ListNodeDataPtr data, Boolean (*comparer)(ListNodeDataPtr a, ListNodeDataPtr b));
 /* because we don't know how a node was allocated a user has to provide the function to free it */
 void freeList(ListPtr list, void (*freeNodeData)(ListNodeDataPtr nodeData));
-/* allows to mutate the list by providing an action to be called on each node */
+/* allows to mutate the list by providing an action to be called on each node with the given context */
 void actOnList(ListPtr list, void (*action)(ListNodeDataPtr nodeData, void *context), void *context);
 int getListLength(ListPtr list);
 #endif	/* LIST_H */

@@ -10,12 +10,14 @@
 
 #include "consts.h"
 
+/* widely used type declarations */
 
 #define DESTINATION_OPERAND_LOW_NIBBLE 0
 #define DESTINATION_OPERAND_HIGH_NIBBLE 1
 #define SOURCE_OPERAND_LOW_NIBBLE 0
 #define SOURCE_OPERAND_HIGH_NIBBLE 2
 
+/* introduce a Boolean type */
 typedef enum {False = 0, True = 1} Boolean;
 
 /* although the values are increasing the values
@@ -69,6 +71,9 @@ typedef struct tOpcodeLayout {
     unsigned int reserved : 2;
 } OpcodeLayout, *OpcodeLayoutPtr;
 
+/* represents a simple addressing scheme without varying addressing, 
+ an operand address can be one of the defined types
+ */
 typedef union uSimpleAddress {
     char *label;
     Word value;
@@ -76,6 +81,9 @@ typedef union uSimpleAddress {
     char reg[REGISTER_NAME_LENGTH + 1];
 } SimpleAddress;
 
+/* Represents a varying addressing operand.
+ * Each varying addressing operand has a label and a member of a SimpleAddressing union.
+ * a varying addressing type itself cannot contain a varying addressing type */
 typedef struct tVaryingAddress
 {
     char *label;
@@ -83,6 +91,7 @@ typedef struct tVaryingAddress
     OperandVaryingAddressing adressing;
 } VaryingAddress, *VaryingAddressPtr;
 
+/* typed address can be either one of the supported addressing types */
 typedef union uTypedAddress {
     char *label;
     Word value;
@@ -100,7 +109,7 @@ typedef struct tOperand
 } Operand, *OperandPtr;
 
 typedef struct tInstructionLayout {
-    OpcodeLayout opcode; /* this might be illegal :-) */ 
+    OpcodeLayout opcode;
     Operand leftOperand;
     Operand rightOperand;
     Word instructionAddress;

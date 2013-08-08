@@ -9,7 +9,9 @@
 #define	SYMBOLLOCATION_H
 
 #include "types.h"
-
+/* a helper type to represent a symbol and WHERE it was located 
+ * declared outside of the Symbol type because its relevant only to externals 
+ */
 typedef struct
 {
     char *symbol;
