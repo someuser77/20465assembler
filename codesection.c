@@ -212,28 +212,34 @@ void setRegisterAddressing(InstructionLayoutPtr instruction)
     /* can't be functioned out because there is no way to tell if its the source or the target */
     /* the register id is valid because we checked it already when parsing */
     
-    if (instruction->leftOperand.addressing == OperandAddressing_DirectRegister)
+    if (!instruction->leftOperand.empty)
     {
-        registerId = getRegisterId(instruction->leftOperand.address.reg);
-        setSourceRegister(instruction, registerId);
-    } 
-    else if (instruction->leftOperand.addressing == OperandAddressing_VaryingIndexing && 
-            instruction->leftOperand.address.varyingAddress.adressing == OperandVaryingAddressing_DirectRegister)
-    {
-        registerId = getRegisterId(instruction->leftOperand.address.varyingAddress.address.reg);
-        setSourceRegister(instruction, registerId);
+        if (instruction->leftOperand.addressing == OperandAddressing_DirectRegister)
+        {
+            registerId = getRegisterId(instruction->leftOperand.address.reg);
+            setSourceRegister(instruction, registerId);
+        } 
+        else if (instruction->leftOperand.addressing == OperandAddressing_VaryingIndexing && 
+                instruction->leftOperand.address.varyingAddress.adressing == OperandVaryingAddressing_DirectRegister)
+        {
+            registerId = getRegisterId(instruction->leftOperand.address.varyingAddress.address.reg);
+            setSourceRegister(instruction, registerId);
+        }
     }
     
-    if (instruction->rightOperand.addressing == OperandAddressing_DirectRegister)
+    if (!instruction->rightOperand.empty)
     {
-        registerId = getRegisterId(instruction->rightOperand.address.reg);
-        setDestinationRegister(instruction, registerId);
-    } 
-    else if (instruction->rightOperand.addressing == OperandAddressing_VaryingIndexing && 
-            instruction->rightOperand.address.varyingAddress.adressing == OperandVaryingAddressing_DirectRegister)
-    {
-        registerId = getRegisterId(instruction->rightOperand.address.varyingAddress.address.reg);
-        setDestinationRegister(instruction, registerId);
+        if (instruction->rightOperand.addressing == OperandAddressing_DirectRegister)
+        {
+            registerId = getRegisterId(instruction->rightOperand.address.reg);
+            setDestinationRegister(instruction, registerId);
+        } 
+        else if (instruction->rightOperand.addressing == OperandAddressing_VaryingIndexing && 
+                instruction->rightOperand.address.varyingAddress.adressing == OperandVaryingAddressing_DirectRegister)
+        {
+            registerId = getRegisterId(instruction->rightOperand.address.varyingAddress.address.reg);
+            setDestinationRegister(instruction, registerId);
+        }
     }
 }
 
@@ -263,20 +269,25 @@ int writeInstruction(CodeSection *codeSection, InstructionLayoutPtr instruction,
     
     writeWord(codeSection->memory, word);
     
-    result = (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
-    
-    if (!result)
+    if (!instruction->leftOperand.empty)
     {
-        return -1;
+        result = (*operandWriter[instruction->leftOperand.addressing])(codeSection, &instruction->leftOperand, sourceLine);
+
+        if (!result)
+        {
+            return -1;
+        }
     }
     
-    result = (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
-    
-    if (!result)
+    if (!instruction->rightOperand.empty)
     {
-        return -1;
+        result = (*operandWriter[instruction->rightOperand.addressing])(codeSection, &instruction->rightOperand, sourceLine);
+
+        if (!result)
+        {
+            return -1;
+        }
     }
-    
     return codeSection->memory->position;
 }
 

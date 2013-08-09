@@ -49,9 +49,9 @@ int main(int argc, char** argv) {
     int instructionCounter;
 
     SymbolTable symbolTable;
-    DataSection *dataSection = NULL;
-    CodeSection *codeSection = NULL;
-    InstructionQueue instructionQueue;
+    DataSection *dataSection;
+    CodeSection *codeSection;
+    InstructionQueuePtr instructionQueue;
 
     int exitCode = EXIT_SUCCESS;
     int i;
@@ -64,6 +64,10 @@ int main(int argc, char** argv) {
     
     for (i = 1; i < argc; i++)
     {
+        dataSection = NULL;
+        codeSection = NULL;
+        instructionQueue = NULL;
+        
         sourceBaseFileName = argv[i];
         
         sourceFullFileName = getSourceFileName(sourceBaseFileName);
@@ -87,7 +91,7 @@ int main(int argc, char** argv) {
 
         instructionQueue = initInstructionQueue();
 
-        instructionCounter = firstPass(sourceFile, codeSection, &instructionQueue, dataSection, sourceBaseFileName);
+        instructionCounter = firstPass(sourceFile, codeSection, instructionQueue, dataSection, sourceBaseFileName);
 
         if (instructionCounter == -1) 
         {
@@ -105,7 +109,7 @@ int main(int argc, char** argv) {
          * expected offset considering the code size */
         fixDataOffset(codeSection, instructionCounter);
 
-        if (!secondPass(sourceFile, codeSection, &instructionQueue, sourceBaseFileName)) 
+        if (!secondPass(sourceFile, codeSection, instructionQueue, sourceBaseFileName)) 
         {
             exitCode = EXIT_FAILURE;
             goto cleanup;
@@ -130,23 +134,31 @@ int main(int argc, char** argv) {
         
     cleanup:
         free(sourceFullFileName);
+        sourceFullFileName = NULL;
         
         if (codeSection != NULL)
         {
             freeCodeSection(codeSection);
+            codeSection = NULL;
         }
 
         if (dataSection != NULL)
         {
             freeDataSection(dataSection);
+            dataSection = NULL;
         }
 
         if (sourceFile != NULL)
         {
             fclose(sourceFile);
+            sourceFile = NULL;
         }
     
-        freeInstructionTable(&instructionQueue);
+        if (instructionQueue != NULL)
+        {
+            freeInstructionQueue(instructionQueue);
+            instructionQueue = NULL;
+        }
     }
     
     return exitCode;

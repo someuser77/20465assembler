@@ -2,16 +2,17 @@
 #include "list.h"
 #include "instructionqueue.h"
 
-InstructionQueue initInstructionQueue()
+InstructionQueuePtr initInstructionQueue()
 {
-    InstructionQueue queue;
-    queue.list = initList(NodeType_Instruction);
-    queue.nodeToIterate = NULL;
-    queue.iterationIsDone = False;
+    InstructionQueuePtr queue;
+    queue = (InstructionQueuePtr)malloc(sizeof(InstructionQueue));
+    queue->list = initList(NodeType_Instruction);
+    queue->nodeToIterate = NULL;
+    queue->iterationIsDone = False;
     return queue;
 }
 
-InstructionLayoutPtr insertInstruction(InstructionQueuePtr table, InstructionLayoutPtr instruction)
+InstructionLayoutPtr insertInstruction(InstructionQueuePtr queue, InstructionLayoutPtr instruction)
 {
     ListNodePtr node;
     ListNodeDataPtr data;
@@ -19,32 +20,32 @@ InstructionLayoutPtr insertInstruction(InstructionQueuePtr table, InstructionLay
     data = (ListNodeDataPtr)malloc(sizeof(ListNodeData));
     data->instruction = instruction;
     
-    node = insertNode(&table->list, data, NodeType_Instruction);
+    node = insertNode(&queue->list, data, NodeType_Instruction);
     
     return node->data->instruction;
 }
 
-InstructionLayoutPtr getNextInstruction(InstructionQueuePtr table)
+InstructionLayoutPtr getNextInstruction(InstructionQueuePtr queue)
 {
     InstructionLayoutPtr result;
     
-    if (table->iterationIsDone) return NULL;
+    if (queue->iterationIsDone) return NULL;
     
-    if (!table->iterationIsDone && table->nodeToIterate == NULL)
+    if (!queue->iterationIsDone && queue->nodeToIterate == NULL)
     {
-        table->nodeToIterate = table->list.head;
-        result = table->nodeToIterate->data->instruction;
-        table->nodeToIterate = table->nodeToIterate->next;
+        queue->nodeToIterate = queue->list.head;
+        result = queue->nodeToIterate->data->instruction;
+        queue->nodeToIterate = queue->nodeToIterate->next;
         return result;
     }
     
-    result = table->nodeToIterate->data->instruction;
+    result = queue->nodeToIterate->data->instruction;
     
-    table->nodeToIterate = table->nodeToIterate->next;
+    queue->nodeToIterate = queue->nodeToIterate->next;
     
-    if (table->nodeToIterate == NULL)
+    if (queue->nodeToIterate == NULL)
     {
-        table->iterationIsDone = True;
+        queue->iterationIsDone = True;
     }
     
     return result;
@@ -55,7 +56,8 @@ void freeInstructionLayoutPtr(ListNodeDataPtr nodeData)
     free(nodeData->instruction);
 }
 
-void freeInstructionTable(InstructionQueuePtr table)
+void freeInstructionQueue(InstructionQueuePtr queue)
 {
-    freeList(&table->list, freeInstructionLayoutPtr);
+    freeList(&queue->list, freeInstructionLayoutPtr);
+    free(queue);
 }
