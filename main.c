@@ -15,6 +15,23 @@
 #include "instructionqueue.h"
 #include "logging.h"
 
+/* the basic flow is :
+ *  - on the first pass:
+ *      + parse the opcodes and operands into the InstructionLayout type
+ *        and queue up all the instructions.
+ *      + collect the labels and entries.
+ *      + write all the data entries.
+ * 
+ *  - after the first pass we have the code size and we can adjust the 
+ *    addresses of the data elements
+ * 
+ *  - on the second pass:
+ *      + dequeue the instructions and resolve any labels
+ *      + resolve any externals
+ * 
+ *  - after the two passes we can dump everything to a file
+ */
+
 char *getEntriesFileName(char *sourceFileName);
 char *getSourceFileName(char *sourceFileName);
 char *getExternalsFileName(char* sourceFileName);
