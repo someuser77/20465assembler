@@ -74,6 +74,9 @@
 
 #define OUTPUT_BASE 8
 
+#define MACHINE_WORD_NTH_TRIPLET(WORD, N) (((WORD) >> ((N) * 3)) & 7)
+#define MACHINE_WORD_MOST_SIGNIFICANT_BIT(WORD) (((WORD) >> 19) & 1)
+
 /* turns on debug output */
 /* #define DEBUG */
 

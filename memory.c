@@ -27,26 +27,46 @@ Word writeInt(Memory *memory, int value)
 void printWordBase8WithBitPadding(Word word, FILE *target)
 {
     int i;
-    int mask = 7;
-    int twoMostSignificantBitsMask = 3 << (MACHINE_WORD_LENGTH - 1);
+    int twoMostSignificantBitsMask = 3 << (MACHINE_WORD_LENGTH - 2);
     char *result;
     int requiredChars = ceil(MACHINE_WORD_LENGTH / 3.0);
+    int charIndex;
+    int bitsPerStep = 3;
+    int mostSignificantBitInTripletMask = 4;
     
     result = (char *)malloc(sizeof(char) * (requiredChars + 1));
     
-    for (i = 0; i < MACHINE_WORD_LENGTH; i += 3)
+    for (i = 0; i < (MACHINE_WORD_LENGTH - 1) / bitsPerStep; i++)
     {
-        result[requiredChars - (i / 3) - 1] = (int)((word & (mask << i)) >> i) + '0';
+        charIndex = requiredChars - i - 1;
+        
+        result[charIndex] = (int)MACHINE_WORD_NTH_TRIPLET(word, i) + '0';
+                
+#ifdef DEBUG
+        printf("Setting: %d to %c\n", charIndex, result[charIndex]);
+#endif
     }
     
-    if ((word & twoMostSignificantBitsMask) == twoMostSignificantBitsMask)
+    /* we 'cant' use MACHINE_WORD_NTH_TRIPLET because the last set is not a triplet. */
+    result[0] = (int)((word & twoMostSignificantBitsMask) >> (MACHINE_WORD_LENGTH - 2));
+    
+#ifdef DEBUG
+    printf("Setting: %d to %c before adjustment.\n", 0, result[0] + '0');
+#endif
+        
+    /* if the most significant bit was set turn 01x into 11x*/
+    
+    if (MACHINE_WORD_MOST_SIGNIFICANT_BIT(word) == 1)
     {
-        result[0] = '7';
-    } 
-    else 
-    {
-        result[0] = (int)((word & twoMostSignificantBitsMask) >> (MACHINE_WORD_LENGTH - 1)) + '0';
+       result[0] |= mostSignificantBitInTripletMask;
     }
+    
+    result[0] += '0';
+    
+    
+#ifdef DEBUG
+    printf("Setting: %d to %c after adjustment.\n", 0, result[0]);
+#endif
     
     result[requiredChars] = EOL;
     
